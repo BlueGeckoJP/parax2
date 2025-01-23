@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -17,23 +16,33 @@ func main() {
 
 	imageHBox := container.NewHBox()
 
-	files, _ := os.ReadDir("./")
-	for _, f := range files {
-		fmt.Println(f.Name())
-		if !f.IsDir() && isImageFile(f.Name()) {
-			fmt.Println("is image: ", f.Name())
-			image := canvas.NewImageFromFile("./" + f.Name())
-			image.Resize(fyne.NewSize(100, 100))
-			image.FillMode = canvas.ImageFillOriginal
-			imageHBox.Add(image)
-		}
-	}
+	mainMenu := fyne.NewMainMenu(
+		fyne.NewMenu("File",
+			fyne.NewMenuItem("Open", func() {
+				updateImageHBox(imageHBox, "./")
+			})),
+	)
+
+	myWindow.SetMainMenu(mainMenu)
 
 	scroll := container.NewHScroll(imageHBox)
 
 	myWindow.SetContent(scroll)
 	myWindow.Resize(fyne.NewSize(800, 600))
 	myWindow.ShowAndRun()
+}
+
+func updateImageHBox(imageHBox *fyne.Container, path string) {
+	imageHBox.RemoveAll()
+	files, _ := os.ReadDir(path)
+	for _, f := range files {
+		if !f.IsDir() && isImageFile(f.Name()) {
+			image := canvas.NewImageFromFile(path + "/" + f.Name())
+			image.Resize(fyne.NewSize(100, 100))
+			image.FillMode = canvas.ImageFillOriginal
+			imageHBox.Add(image)
+		}
+	}
 }
 
 func isImageFile(filename string) bool {
