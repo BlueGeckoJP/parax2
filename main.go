@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -9,11 +10,64 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 )
 
 func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("parax2")
+
+	directoryTree := widget.NewTree(
+		func(id widget.TreeNodeID) []widget.TreeNodeID {
+			path := id
+			if path == "" {
+				path = "."
+			}
+			files, err := os.ReadDir(path)
+			if err != nil {
+				return nil
+			}
+			children := make([]widget.TreeNodeID, 0)
+			for _, file := range files {
+				children = append(children, filepath.Join(path, file.Name()))
+			}
+			return children
+		},
+		func(id widget.TreeNodeID) bool {
+			if id == "" {
+				return true
+			}
+			info, err := os.Stat(id)
+			if err != nil {
+				return false
+			}
+			return info.IsDir()
+		},
+		func(branch bool) fyne.CanvasObject {
+			if branch {
+				return widget.NewIcon(theme.FolderIcon())
+			}
+			return widget.NewIcon(theme.FileImageIcon())
+		},
+		func(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
+			if icon, ok := o.(*widget.Icon); ok {
+				if branch {
+					icon.SetResource(theme.FolderIcon())
+				} else {
+					icon.SetResource(theme.FileImageIcon())
+				}
+			}
+		},
+	)
+
+	directoryTree.OnSelected = func(id widget.TreeNodeID) {
+	}
+
+	directoryTreeLabel := widget.NewLabel("Directory Tree")
+
+	leftPanel := container.New(layout.NewBorderLayout(directoryTreeLabel, nil, nil, nil), directoryTreeLabel, directoryTree)
 
 	imageHBox := container.NewHBox()
 
@@ -36,7 +90,10 @@ func main() {
 
 	scroll := container.NewHScroll(imageHBox)
 
-	myWindow.SetContent(scroll)
+	split := container.NewHSplit(leftPanel, scroll)
+	split.SetOffset(0.2)
+
+	myWindow.SetContent(split)
 	myWindow.Resize(fyne.NewSize(800, 600))
 	myWindow.ShowAndRun()
 }
