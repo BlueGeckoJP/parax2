@@ -82,7 +82,7 @@ func main() {
 
 	leftPanel := container.New(layout.NewBorderLayout(directoryTreeLabel, nil, nil, nil), directoryTreeLabel, directoryTree)
 
-	imageHBox := container.NewHBox()
+	mainPanel := container.NewVBox()
 
 	mainMenu := fyne.NewMainMenu(
 		fyne.NewMenu("File",
@@ -93,7 +93,7 @@ func main() {
 						return
 					}
 					if reader != nil {
-						updateImageHBox(imageHBox, reader.Path())
+						updateImageLists(mainPanel, reader.Path())
 						directoryTree.Root = reader.Path()
 					}
 				}, myWindow)
@@ -102,9 +102,7 @@ func main() {
 
 	myWindow.SetMainMenu(mainMenu)
 
-	scroll := container.NewHScroll(imageHBox)
-
-	split := container.NewHSplit(leftPanel, scroll)
+	split := container.NewHSplit(leftPanel, mainPanel)
 	split.SetOffset(0.2)
 
 	myWindow.SetContent(split)
@@ -112,16 +110,31 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-func updateImageHBox(imageHBox *fyne.Container, path string) {
-	imageHBox.RemoveAll()
+func updateImageLists(imageLists *fyne.Container, path string) {
+	imageLists.RemoveAll()
 	files, _ := os.ReadDir(path)
+
+	addImage(files, path, imageLists, 0, 1)
+}
+
+func addImage(files []os.DirEntry, path string, imageLists *fyne.Container, depth int, maxDepth int) {
+	list := container.NewHBox()
+
 	for _, f := range files {
-		if !f.IsDir() && isImageFile(f.Name()) {
+		if isImageFile(f.Name()) {
 			image := canvas.NewImageFromFile(path + "/" + f.Name())
-			image.Resize(fyne.NewSize(100, 100))
-			image.FillMode = canvas.ImageFillOriginal
-			imageHBox.Add(image)
+			image.SetMinSize(fyne.NewSize(200, 200))
+			image.FillMode = canvas.ImageFillContain
+			list.Add(image)
+		} else if f.IsDir() && depth < maxDepth {
+			subDir := filepath.Join(path, f.Name())
+			subFiles, _ := os.ReadDir(subDir)
+			addImage(subFiles, subDir, imageLists, depth+1, maxDepth)
 		}
+	}
+
+	if list.Objects != nil {
+		imageLists.Add(container.NewHScroll(list))
 	}
 }
 
