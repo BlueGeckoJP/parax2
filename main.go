@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,27 +16,56 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+type Entry struct {
+	Path     string
+	Children []*Entry
+	Depth    int
+	isDir    bool
+}
+
+const maxDepth = 2
+
+var entries []*Entry
+var currentPath = "."
+
+var directoryTree *widget.Tree
+var directoryTreeLabel *widget.Label
+
 func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("parax2")
 
-	directoryTree := widget.NewTree(
+	updateEntries(currentPath)
+	fmt.Println(len(entries))
+	for _, entry := range entries {
+		fmt.Println(entry.Path, entry.Depth, entry.isDir, len(entry.Children))
+		if entry.isDir {
+			for _, child := range entry.Children {
+				fmt.Println(child.Path)
+			}
+		}
+	}
+
+	directoryTree = widget.NewTree(
 		func(id widget.TreeNodeID) []widget.TreeNodeID {
-			path := id
-			if path == "" {
-				path = "."
+			if id == "" {
+				children := make([]widget.TreeNodeID, 0)
+				for _, entry := range entries {
+					children = append(children, entry.Path)
+				}
+				return children
 			}
-			files, err := os.ReadDir(path)
-			if err != nil {
-				return nil
-			}
-			children := make([]widget.TreeNodeID, 0)
-			for _, file := range files {
-				if file.IsDir() || isImageFile(file.Name()) {
-					children = append(children, filepath.Join(path, file.Name()))
+
+			for _, entry := range entries {
+				if entry.Path == id && entry.isDir {
+					children := make([]widget.TreeNodeID, 0)
+					for _, child := range entry.Children {
+						children = append(children, child.Path)
+					}
+					return children
 				}
 			}
-			return children
+			return nil
 		},
 		func(id widget.TreeNodeID) bool {
 			if id == "" {
@@ -74,11 +104,10 @@ func main() {
 		},
 	)
 
-	directoryTree.Root = "."
 	directoryTree.OnSelected = func(id widget.TreeNodeID) {
 	}
 
-	directoryTreeLabel := widget.NewLabel("Directory Tree")
+	directoryTreeLabel = widget.NewLabel("Tree in " + currentPath)
 
 	leftPanel := container.New(layout.NewBorderLayout(directoryTreeLabel, nil, nil, nil), directoryTreeLabel, directoryTree)
 
@@ -93,8 +122,8 @@ func main() {
 						return
 					}
 					if reader != nil {
-						updateImageLists(mainPanel, reader.Path())
-						directoryTree.Root = reader.Path()
+						updateEntries(reader.Path())
+						updateImageLists(mainPanel)
 					}
 				}, myWindow)
 			})),
@@ -102,7 +131,7 @@ func main() {
 
 	myWindow.SetMainMenu(mainMenu)
 
-	split := container.NewHSplit(leftPanel, mainPanel)
+	split := container.NewHSplit(leftPanel, container.NewVScroll(mainPanel))
 	split.SetOffset(0.2)
 
 	myWindow.SetContent(split)
@@ -110,32 +139,29 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-func updateImageLists(imageLists *fyne.Container, path string) {
+func updateImageLists(imageLists *fyne.Container) {
 	imageLists.RemoveAll()
-	files, _ := os.ReadDir(path)
 
-	addImage(files, path, path, imageLists, 0, 1)
+	addImage(entries, imageLists)
 	reverseImageLists(imageLists)
 }
 
-func addImage(files []os.DirEntry, path string, topPath string, imageLists *fyne.Container, depth int, maxDepth int) {
+func addImage(entries []*Entry, imageLists *fyne.Container) {
 	list := container.NewHBox()
 
-	for _, f := range files {
-		if isImageFile(f.Name()) {
-			image := canvas.NewImageFromFile(path + "/" + f.Name())
-			image.SetMinSize(fyne.NewSize(200, 200))
+	for _, entry := range entries {
+		if entry.isDir {
+			addImage(entry.Children, imageLists)
+		} else {
+			image := canvas.NewImageFromFile(entry.Path)
 			image.FillMode = canvas.ImageFillContain
+			image.SetMinSize(fyne.NewSize(200, 200))
 			list.Add(image)
-		} else if f.IsDir() && depth < maxDepth {
-			subDir := filepath.Join(path, f.Name())
-			subFiles, _ := os.ReadDir(subDir)
-			addImage(subFiles, subDir, path, imageLists, depth+1, maxDepth)
 		}
 	}
 
 	if list.Objects != nil {
-		relPath, _ := filepath.Rel(topPath, path)
+		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 
 		imageLists.Add(
 			container.NewVBox(
@@ -162,4 +188,50 @@ func isImageFile(filename string) bool {
 		}
 	}
 	return false
+}
+
+func updateEntries(path string) {
+	entries = nil
+	currentPath = path
+	result := addEntry(currentPath, 0, maxDepth)
+	entries = result
+	if directoryTreeLabel != nil {
+		directoryTreeLabel.SetText("Tree in " + filepath.Base(currentPath))
+	}
+	if directoryTree != nil {
+		directoryTree.Refresh()
+	}
+}
+
+func addEntry(path string, depth int, maxDepth int) []*Entry {
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return nil
+	}
+
+	result := make([]*Entry, 0)
+
+	for _, f := range files {
+		if f.IsDir() && depth < maxDepth {
+			p := filepath.Join(path, f.Name())
+			entry := &Entry{
+				Path:     p,
+				Children: addEntry(p, depth+1, maxDepth),
+				Depth:    depth,
+				isDir:    true,
+			}
+			result = append(result, entry)
+		} else if isImageFile(f.Name()) {
+			entry := &Entry{
+				Path:     filepath.Join(path, f.Name()),
+				Children: nil,
+				Depth:    depth,
+				isDir:    false,
+			}
+			result = append(result, entry)
+
+			fmt.Println(entry.Path)
+		}
+	}
+	return result
 }
