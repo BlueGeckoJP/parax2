@@ -47,17 +47,30 @@ func main() {
 		},
 		func(branch bool) fyne.CanvasObject {
 			if branch {
-				return widget.NewIcon(theme.FolderIcon())
+				return container.NewHBox(
+					widget.NewIcon(theme.FolderIcon()),
+					widget.NewLabel(""),
+				)
 			}
-			return widget.NewIcon(theme.FileImageIcon())
+			return container.NewHBox(
+				widget.NewIcon(theme.FileImageIcon()),
+				widget.NewLabel(""),
+			)
 		},
 		func(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
-			if icon, ok := o.(*widget.Icon); ok {
-				if branch {
-					icon.SetResource(theme.FolderIcon())
-				} else {
-					icon.SetResource(theme.FileImageIcon())
-				}
+			container := o.(*fyne.Container)
+			icon := container.Objects[0].(*widget.Icon)
+			label := container.Objects[1].(*widget.Label)
+
+			if branch {
+				icon.SetResource(theme.FolderIcon())
+				label.SetText(filepath.Base(id))
+			} else if isImageFile(id) {
+				icon.SetResource(theme.FileImageIcon())
+				label.SetText(filepath.Base(id))
+			} else {
+				icon.SetResource(theme.FileIcon())
+				label.SetText(filepath.Base(id))
 			}
 		},
 	)
@@ -91,7 +104,7 @@ func main() {
 	scroll := container.NewHScroll(imageHBox)
 
 	split := container.NewHSplit(leftPanel, scroll)
-	split.SetOffset(0.2)
+	split.SetOffset(0.25)
 
 	myWindow.SetContent(split)
 	myWindow.Resize(fyne.NewSize(800, 600))
