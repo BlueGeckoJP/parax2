@@ -31,7 +31,9 @@ func main() {
 			}
 			children := make([]widget.TreeNodeID, 0)
 			for _, file := range files {
-				children = append(children, filepath.Join(path, file.Name()))
+				if file.IsDir() || isImageFile(file.Name()) {
+					children = append(children, filepath.Join(path, file.Name()))
+				}
 			}
 			return children
 		},
@@ -65,16 +67,14 @@ func main() {
 			if branch {
 				icon.SetResource(theme.FolderIcon())
 				label.SetText(filepath.Base(id))
-			} else if isImageFile(id) {
-				icon.SetResource(theme.FileImageIcon())
-				label.SetText(filepath.Base(id))
 			} else {
-				icon.SetResource(theme.FileIcon())
+				icon.SetResource(theme.MediaPhotoIcon())
 				label.SetText(filepath.Base(id))
 			}
 		},
 	)
 
+	directoryTree.Root = "."
 	directoryTree.OnSelected = func(id widget.TreeNodeID) {
 	}
 
@@ -94,6 +94,7 @@ func main() {
 					}
 					if reader != nil {
 						updateImageHBox(imageHBox, reader.Path())
+						directoryTree.Root = reader.Path()
 					}
 				}, myWindow)
 			})),
@@ -104,7 +105,7 @@ func main() {
 	scroll := container.NewHScroll(imageHBox)
 
 	split := container.NewHSplit(leftPanel, scroll)
-	split.SetOffset(0.25)
+	split.SetOffset(0.2)
 
 	myWindow.SetContent(split)
 	myWindow.Resize(fyne.NewSize(800, 600))
