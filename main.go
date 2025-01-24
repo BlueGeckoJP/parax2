@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 )
 
 func main() {
@@ -18,8 +19,16 @@ func main() {
 
 	mainMenu := fyne.NewMainMenu(
 		fyne.NewMenu("File",
-			fyne.NewMenuItem("Open", func() {
-				updateImageHBox(imageHBox, "./")
+			fyne.NewMenuItem("Open Folder", func() {
+				dialog.ShowFolderOpen(func(reader fyne.ListableURI, err error) {
+					if err != nil {
+						dialog.ShowError(err, myWindow)
+						return
+					}
+					if reader != nil {
+						updateImageHBox(imageHBox, reader.Path())
+					}
+				}, myWindow)
 			})),
 	)
 
