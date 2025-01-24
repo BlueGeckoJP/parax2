@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,15 +35,6 @@ func main() {
 	myWindow := myApp.NewWindow("parax2")
 
 	updateEntries(currentPath)
-	fmt.Println(len(entries))
-	for _, entry := range entries {
-		fmt.Println(entry.Path, entry.Depth, entry.isDir, len(entry.Children))
-		if entry.isDir {
-			for _, child := range entry.Children {
-				fmt.Println(child.Path)
-			}
-		}
-	}
 
 	directoryTree = widget.NewTree(
 		func(id widget.TreeNodeID) []widget.TreeNodeID {
@@ -229,8 +219,6 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 				isDir:    false,
 			}
 			result = append(result, entry)
-
-			fmt.Println(entry.Path)
 		}
 	}
 	return result
