@@ -114,10 +114,11 @@ func updateImageLists(imageLists *fyne.Container, path string) {
 	imageLists.RemoveAll()
 	files, _ := os.ReadDir(path)
 
-	addImage(files, path, imageLists, 0, 1)
+	addImage(files, path, path, imageLists, 0, 1)
+	reverseImageLists(imageLists)
 }
 
-func addImage(files []os.DirEntry, path string, imageLists *fyne.Container, depth int, maxDepth int) {
+func addImage(files []os.DirEntry, path string, topPath string, imageLists *fyne.Container, depth int, maxDepth int) {
 	list := container.NewHBox()
 
 	for _, f := range files {
@@ -129,17 +130,27 @@ func addImage(files []os.DirEntry, path string, imageLists *fyne.Container, dept
 		} else if f.IsDir() && depth < maxDepth {
 			subDir := filepath.Join(path, f.Name())
 			subFiles, _ := os.ReadDir(subDir)
-			addImage(subFiles, subDir, imageLists, depth+1, maxDepth)
+			addImage(subFiles, subDir, path, imageLists, depth+1, maxDepth)
 		}
 	}
 
 	if list.Objects != nil {
+		relPath, _ := filepath.Rel(topPath, path)
+
 		imageLists.Add(
 			container.NewVBox(
-				widget.NewLabel(path),
+				widget.NewLabel(relPath),
 				container.NewHScroll(list),
 			),
 		)
+	}
+}
+
+func reverseImageLists(imageLists *fyne.Container) {
+	objects := imageLists.Objects
+	for i := 0; i < len(objects)/2; i++ {
+		j := len(objects) - i - 1
+		objects[i], objects[j] = objects[j], objects[i]
 	}
 }
 
