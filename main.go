@@ -134,7 +134,12 @@ func addImage(files []os.DirEntry, path string, imageLists *fyne.Container, dept
 	}
 
 	if list.Objects != nil {
-		imageLists.Add(container.NewHScroll(list))
+		imageLists.Add(
+			container.NewVBox(
+				widget.NewLabel(path),
+				container.NewHScroll(list),
+			),
+		)
 	}
 }
 
