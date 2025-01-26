@@ -124,7 +124,7 @@ func main() {
 					}
 					if reader != nil {
 						updateEntries(reader.Path())
-						updateImageLists(mainPanel)
+						updateMainPanel(mainPanel)
 					}
 				}, myWindow)
 			})),
@@ -140,17 +140,17 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-func updateImageLists(imageLists *fyne.Container) {
+func updateMainPanel(imageLists *fyne.Container) {
 	imageLists.Objects = nil
-	addImage(entries, imageLists)
+	addImageHBox(entries, imageLists)
 }
 
-func addImage(entries []*Entry, imageLists *fyne.Container) {
+func addImageHBox(entries []*Entry, imageLists *fyne.Container) {
 	list := container.NewHBox()
 
 	for _, entry := range entries {
 		if entry.isDir {
-			addImage(entry.Children, imageLists)
+			addImageHBox(entry.Children, imageLists)
 		} else {
 			image, exists := thumbnailCache[entry.Path]
 			if !exists {
