@@ -165,10 +165,12 @@ func addImage(entries []*Entry, imageLists *fyne.Container) {
 
 	if list.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
-		imageLists.Objects = append([]fyne.CanvasObject{container.NewVBox(
-			widget.NewLabel(relPath),
-			container.NewHScroll(list),
-		)}, imageLists.Objects...)
+		go func() {
+			imageLists.Objects = append([]fyne.CanvasObject{container.NewVBox(
+				widget.NewLabel(relPath),
+				container.NewHScroll(list),
+			)}, imageLists.Objects...)
+		}()
 	}
 }
 
