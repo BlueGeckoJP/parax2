@@ -144,37 +144,47 @@ func main() {
 
 func updateImageLists(imageLists *fyne.Container) {
 	imageLists.RemoveAll()
+	updateImageListsAsync(imageLists)
+}
 
+func updateImageListsAsync(imageLists *fyne.Container) {
 	var wg sync.WaitGroup
-	ch := make(chan *fyne.Container, 128)
+	ch := make(chan []fyne.CanvasObject, 10)
+	closeCh := make(chan bool, 1)
 
 	wg.Add(1)
-	go addImage(entries, ch, &wg)
-
-	go func() {
-		for container := range ch {
-			fmt.Print("c")
-			imageLists.Add(container)
-			//imageLists.Refresh()
-		}
-	}()
+	go addImage(entries, imageLists, &wg, ch)
 
 	go func() {
 		wg.Wait()
-		fmt.Println("w")
-		close(ch)
+		closeCh <- true
+	}()
+
+	go func() {
+		for {
+			select {
+			case list := <-ch:
+				//imageLists.Objects = append(list, imageLists.Objects...)
+				imageLists.Objects = append(imageLists.Objects, list...)
+				imageLists.Refresh()
+			case <-closeCh:
+				fmt.Println("\n\nDone\n")
+				return
+			}
+		}
 	}()
 }
 
-func addImage(entries []*Entry, ch chan *fyne.Container, wg *sync.WaitGroup) {
+func addImage(entries []*Entry, imageLists *fyne.Container, wg *sync.WaitGroup, ch chan []fyne.CanvasObject) {
 	defer wg.Done()
+
 	list := container.NewHBox()
 
 	for _, entry := range entries {
-		fmt.Print("r")
+		fmt.Println(entry.Path)
 		if entry.isDir {
 			wg.Add(1)
-			go addImage(entry.Children, ch, wg)
+			go addImage(entry.Children, imageLists, wg, ch)
 		} else {
 			imageValue, exists := thumbnailCache.Load(entry.Path)
 			if !exists {
@@ -192,12 +202,11 @@ func addImage(entries []*Entry, ch chan *fyne.Container, wg *sync.WaitGroup) {
 	}
 
 	if list.Objects != nil {
-		fmt.Print("l")
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
-		ch <- container.NewVBox(
+		ch <- []fyne.CanvasObject{container.NewVBox(
 			widget.NewLabel(relPath),
 			container.NewHScroll(list),
-		)
+		)}
 	}
 }
 func isImageFile(filename string) bool {
