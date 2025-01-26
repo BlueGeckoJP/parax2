@@ -141,8 +141,7 @@ func main() {
 }
 
 func updateImageLists(imageLists *fyne.Container) {
-	imageLists.RemoveAll()
-
+	imageLists.Objects = nil
 	addImage(entries, imageLists)
 }
 
