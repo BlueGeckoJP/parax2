@@ -56,7 +56,7 @@ func main() {
 	updateEntries(currentPath)
 
 	backgroundRect = canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
-	backgroundRect.Resize(thumbnailSize)
+	backgroundRect.SetMinSize(thumbnailSize)
 
 	directoryTree = widget.NewTree(
 		func(id widget.TreeNodeID) []widget.TreeNodeID {
