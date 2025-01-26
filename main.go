@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
@@ -186,10 +187,27 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 	if list.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 		go func() {
-			mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
-				widget.NewLabel(relPath),
-				container.NewHScroll(list),
-			)}, mainPanel.Objects...)
+			objLen := len(mainPanel.Objects)
+
+			background := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
+			background.Resize(fyne.NewSize(200, 200))
+
+			if objLen%2 == 0 {
+				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
+					widget.NewLabel(relPath),
+					container.NewHScroll(list),
+				)}, mainPanel.Objects...)
+			} else {
+				mainPanel.Objects = append([]fyne.CanvasObject{
+					container.NewStack(
+						background,
+						container.NewVBox(
+							widget.NewLabel(relPath),
+							container.NewHScroll(list),
+						),
+					),
+				}, mainPanel.Objects...)
+			}
 		}()
 	}
 }
@@ -215,10 +233,27 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 	if grid.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 		go func() {
-			mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
-				widget.NewLabel(relPath),
-				grid,
-			)}, mainPanel.Objects...)
+			objLen := len(mainPanel.Objects)
+
+			background := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
+			background.Resize(fyne.NewSize(200, 200))
+
+			if objLen%2 == 0 {
+				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
+					widget.NewLabel(relPath),
+					container.NewHScroll(grid),
+				)}, mainPanel.Objects...)
+			} else {
+				mainPanel.Objects = append([]fyne.CanvasObject{
+					container.NewStack(
+						background,
+						container.NewVBox(
+							widget.NewLabel(relPath),
+							container.NewHScroll(grid),
+						),
+					),
+				}, mainPanel.Objects...)
+			}
 		}()
 	}
 }
