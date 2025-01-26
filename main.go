@@ -24,6 +24,15 @@ type Entry struct {
 
 const maxDepth = 2
 
+var imageExts = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".gif":  true,
+	".bmp":  true,
+	".svg":  true,
+}
+
 var entries []*Entry
 var currentPath = "."
 
@@ -133,7 +142,6 @@ func updateImageLists(imageLists *fyne.Container) {
 	imageLists.RemoveAll()
 
 	addImage(entries, imageLists)
-	reverseImageLists(imageLists)
 }
 
 func addImage(entries []*Entry, imageLists *fyne.Container) {
@@ -153,31 +161,16 @@ func addImage(entries []*Entry, imageLists *fyne.Container) {
 	if list.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 
-		imageLists.Add(
-			container.NewVBox(
-				widget.NewLabel(relPath),
-				container.NewHScroll(list),
-			),
-		)
-	}
-}
-
-func reverseImageLists(imageLists *fyne.Container) {
-	objects := imageLists.Objects
-	for i := 0; i < len(objects)/2; i++ {
-		j := len(objects) - i - 1
-		objects[i], objects[j] = objects[j], objects[i]
+		imageLists.Objects = append([]fyne.CanvasObject{container.NewVBox(
+			widget.NewLabel(relPath),
+			container.NewHScroll(list),
+		)}, imageLists.Objects...)
 	}
 }
 
 func isImageFile(filename string) bool {
-	extensions := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"}
-	for _, ext := range extensions {
-		if strings.HasSuffix(strings.ToLower(filename), ext) {
-			return true
-		}
-	}
-	return false
+	ext := strings.ToLower(filepath.Ext(filename))
+	return imageExts[ext]
 }
 
 func updateEntries(path string) {
