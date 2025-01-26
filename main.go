@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -36,7 +34,7 @@ var imageExts = map[string]bool{
 }
 
 var entries []*Entry
-var thumbnailCache sync.Map
+var thumbnailCache = make(map[string]*canvas.Image)
 var currentPath = "."
 var loadCount = 0
 
@@ -144,71 +142,37 @@ func main() {
 
 func updateImageLists(imageLists *fyne.Container) {
 	imageLists.RemoveAll()
-	updateImageListsAsync(imageLists)
+
+	addImage(entries, imageLists)
 }
 
-func updateImageListsAsync(imageLists *fyne.Container) {
-	var wg sync.WaitGroup
-	ch := make(chan []fyne.CanvasObject, 10)
-	closeCh := make(chan bool, 1)
-
-	wg.Add(1)
-	go addImage(entries, imageLists, &wg, ch)
-
-	go func() {
-		wg.Wait()
-		closeCh <- true
-	}()
-
-	go func() {
-		for {
-			select {
-			case list := <-ch:
-				//imageLists.Objects = append(list, imageLists.Objects...)
-				imageLists.Objects = append(imageLists.Objects, list...)
-				imageLists.Refresh()
-			case <-closeCh:
-				fmt.Println("\n\nDone\n")
-				return
-			}
-		}
-	}()
-}
-
-func addImage(entries []*Entry, imageLists *fyne.Container, wg *sync.WaitGroup, ch chan []fyne.CanvasObject) {
-	defer wg.Done()
-
+func addImage(entries []*Entry, imageLists *fyne.Container) {
 	list := container.NewHBox()
 
 	for _, entry := range entries {
-		fmt.Println(entry.Path)
 		if entry.isDir {
-			wg.Add(1)
-			go addImage(entry.Children, imageLists, wg, ch)
+			addImage(entry.Children, imageLists)
 		} else {
-			imageValue, exists := thumbnailCache.Load(entry.Path)
+			image, exists := thumbnailCache[entry.Path]
 			if !exists {
-				image := canvas.NewImageFromFile(entry.Path)
+				image = canvas.NewImageFromFile(entry.Path)
 				image.FillMode = canvas.ImageFillContain
 				image.SetMinSize(fyne.NewSize(200, 200))
-				thumbnailCache.Store(entry.Path, image)
-				list.Add(image)
-			} else {
-				if image, ok := imageValue.(*canvas.Image); ok {
-					list.Add(image)
-				}
+				thumbnailCache[entry.Path] = image
 			}
+			list.Add(image)
 		}
 	}
 
 	if list.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
-		ch <- []fyne.CanvasObject{container.NewVBox(
+		imageLists.Objects = append([]fyne.CanvasObject{container.NewVBox(
 			widget.NewLabel(relPath),
 			container.NewHScroll(list),
-		)}
+		)}, imageLists.Objects...)
 	}
 }
+
 func isImageFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	return imageExts[ext]
@@ -290,15 +254,9 @@ func clearUnusedCache() {
 	}
 	collectPaths(entries)
 
-	thumbnailCache.Range(func(key, value interface{}) bool {
-		path, ok := key.(string)
-		if !ok {
-			return true
-		}
+	for path := range thumbnailCache {
 		if !activePaths[path] {
-
-			thumbnailCache.Delete(key)
+			delete(thumbnailCache, path)
 		}
-		return true
-	})
+	}
 }
