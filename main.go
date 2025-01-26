@@ -16,10 +16,11 @@ import (
 )
 
 type Entry struct {
-	Path     string
-	Children []*Entry
-	Depth    int
-	isDir    bool
+	Path           string
+	Children       []*Entry
+	Depth          int
+	isDir          bool
+	thumbnailCache *canvas.Image
 }
 
 const maxDepth = 2
@@ -151,10 +152,12 @@ func addImage(entries []*Entry, imageLists *fyne.Container) {
 		if entry.isDir {
 			addImage(entry.Children, imageLists)
 		} else {
-			image := canvas.NewImageFromFile(entry.Path)
-			image.FillMode = canvas.ImageFillContain
-			image.SetMinSize(fyne.NewSize(200, 200))
-			list.Add(image)
+			if entry.thumbnailCache == nil {
+				entry.thumbnailCache = canvas.NewImageFromFile(entry.Path)
+				entry.thumbnailCache.FillMode = canvas.ImageFillContain
+				entry.thumbnailCache.SetMinSize(fyne.NewSize(200, 200))
+			}
+			list.Add(entry.thumbnailCache)
 		}
 	}
 
@@ -174,8 +177,12 @@ func isImageFile(filename string) bool {
 }
 
 func updateEntries(path string) {
-	entries = nil
+	oldPath := currentPath
 	currentPath = path
+	if oldPath == path {
+		return
+	}
+	entries = nil
 	result := addEntry(currentPath, 0, maxDepth)
 	entries = result
 	if directoryTreeLabel != nil {
