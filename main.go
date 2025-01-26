@@ -200,17 +200,21 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 	}
 
 	result := make([]*Entry, 0)
+	imageEntries := make([]*Entry, 0)
 
 	for _, f := range files {
 		if f.IsDir() && depth < maxDepth {
 			p := filepath.Join(path, f.Name())
-			entry := &Entry{
-				Path:     p,
-				Children: addEntry(p, depth+1, maxDepth),
-				Depth:    depth,
-				isDir:    true,
+			children := addEntry(p, depth+1, maxDepth)
+			if len(children) > 0 {
+				entry := &Entry{
+					Path:     p,
+					Children: children,
+					Depth:    depth,
+					isDir:    true,
+				}
+				result = append(result, entry)
 			}
-			result = append(result, entry)
 		} else if isImageFile(f.Name()) {
 			entry := &Entry{
 				Path:     filepath.Join(path, f.Name()),
@@ -218,8 +222,13 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 				Depth:    depth,
 				isDir:    false,
 			}
-			result = append(result, entry)
+			imageEntries = append(imageEntries, entry)
 		}
 	}
+
+	if len(imageEntries) > 0 {
+		result = append(result, imageEntries...)
+	}
+
 	return result
 }
