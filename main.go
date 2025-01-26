@@ -23,6 +23,10 @@ type Entry struct {
 }
 
 const maxDepth = 2
+const (
+	ViewModeList = iota
+	ViewModeGrid
+)
 
 var imageExts = map[string]bool{
 	".jpg":  true,
@@ -37,6 +41,7 @@ var entries []*Entry
 var thumbnailCache = make(map[string]*canvas.Image)
 var currentPath = "."
 var loadCount = 0
+var currentViewMode = ViewModeList
 
 var directoryTree *widget.Tree
 var directoryTreeLabel *widget.Label
@@ -128,6 +133,16 @@ func main() {
 					}
 				}, myWindow)
 			})),
+		fyne.NewMenu("View",
+			fyne.NewMenuItem("List View", func() {
+				currentViewMode = ViewModeList
+				updateMainPanel(mainPanel)
+			}),
+			fyne.NewMenuItem("Grid View", func() {
+				currentViewMode = ViewModeGrid
+				updateMainPanel(mainPanel)
+			}),
+		),
 	)
 
 	myWindow.SetMainMenu(mainMenu)
@@ -142,7 +157,12 @@ func main() {
 
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
-	addImageHBox(entries, mainPanel)
+	switch currentViewMode {
+	case ViewModeList:
+		addImageHBox(entries, mainPanel)
+	case ViewModeGrid:
+		addImageGrid(entries, mainPanel)
+	}
 }
 
 func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
@@ -169,6 +189,35 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 			mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 				widget.NewLabel(relPath),
 				container.NewHScroll(list),
+			)}, mainPanel.Objects...)
+		}()
+	}
+}
+
+func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
+	grid := container.NewGridWrap(fyne.NewSize(200, 200))
+
+	for _, entry := range entries {
+		if entry.isDir {
+			addImageGrid(entry.Children, mainPanel)
+		} else {
+			image, exists := thumbnailCache[entry.Path]
+			if !exists {
+				image = canvas.NewImageFromFile(entry.Path)
+				image.FillMode = canvas.ImageFillContain
+				image.SetMinSize(fyne.NewSize(200, 200))
+				thumbnailCache[entry.Path] = image
+			}
+			grid.Add(image)
+		}
+	}
+
+	if grid.Objects != nil {
+		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
+		go func() {
+			mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
+				widget.NewLabel(relPath),
+				grid,
 			)}, mainPanel.Objects...)
 		}()
 	}
