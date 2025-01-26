@@ -37,6 +37,8 @@ var imageExts = map[string]bool{
 	".bmp":  true,
 	".svg":  true,
 }
+var backgroundRect *canvas.Rectangle
+var thumbnailSize = fyne.NewSize(200, 200)
 
 var entries []*Entry
 var thumbnailCache = make(map[string]*canvas.Image)
@@ -52,6 +54,9 @@ func main() {
 	myWindow := myApp.NewWindow("parax2")
 
 	updateEntries(currentPath)
+
+	backgroundRect = canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
+	backgroundRect.Resize(thumbnailSize)
 
 	directoryTree = widget.NewTree(
 		func(id widget.TreeNodeID) []widget.TreeNodeID {
@@ -177,7 +182,7 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 			if !exists {
 				image = canvas.NewImageFromFile(entry.Path)
 				image.FillMode = canvas.ImageFillContain
-				image.SetMinSize(fyne.NewSize(200, 200))
+				image.SetMinSize(thumbnailSize)
 				thumbnailCache[entry.Path] = image
 			}
 			list.Add(image)
@@ -189,9 +194,6 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 		go func() {
 			objLen := len(mainPanel.Objects)
 
-			background := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
-			background.Resize(fyne.NewSize(200, 200))
-
 			if objLen%2 == 0 {
 				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 					widget.NewLabel(relPath),
@@ -200,7 +202,7 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 			} else {
 				mainPanel.Objects = append([]fyne.CanvasObject{
 					container.NewStack(
-						background,
+						backgroundRect,
 						container.NewVBox(
 							widget.NewLabel(relPath),
 							container.NewHScroll(list),
@@ -213,7 +215,7 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 }
 
 func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
-	grid := container.NewGridWrap(fyne.NewSize(200, 200))
+	grid := container.NewGridWrap(thumbnailSize)
 
 	for _, entry := range entries {
 		if entry.isDir {
@@ -223,7 +225,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 			if !exists {
 				image = canvas.NewImageFromFile(entry.Path)
 				image.FillMode = canvas.ImageFillContain
-				image.SetMinSize(fyne.NewSize(200, 200))
+				image.SetMinSize(thumbnailSize)
 				thumbnailCache[entry.Path] = image
 			}
 			grid.Add(image)
@@ -235,9 +237,6 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 		go func() {
 			objLen := len(mainPanel.Objects)
 
-			background := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
-			background.Resize(fyne.NewSize(200, 200))
-
 			if objLen%2 == 0 {
 				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 					widget.NewLabel(relPath),
@@ -246,7 +245,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 			} else {
 				mainPanel.Objects = append([]fyne.CanvasObject{
 					container.NewStack(
-						background,
+						backgroundRect,
 						container.NewVBox(
 							widget.NewLabel(relPath),
 							container.NewHScroll(grid),
