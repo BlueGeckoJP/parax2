@@ -140,17 +140,17 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-func updateMainPanel(imageLists *fyne.Container) {
-	imageLists.Objects = nil
-	addImageHBox(entries, imageLists)
+func updateMainPanel(mainPanel *fyne.Container) {
+	mainPanel.Objects = nil
+	addImageHBox(entries, mainPanel)
 }
 
-func addImageHBox(entries []*Entry, imageLists *fyne.Container) {
+func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 	list := container.NewHBox()
 
 	for _, entry := range entries {
 		if entry.isDir {
-			addImageHBox(entry.Children, imageLists)
+			addImageHBox(entry.Children, mainPanel)
 		} else {
 			image, exists := thumbnailCache[entry.Path]
 			if !exists {
@@ -166,10 +166,10 @@ func addImageHBox(entries []*Entry, imageLists *fyne.Container) {
 	if list.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 		go func() {
-			imageLists.Objects = append([]fyne.CanvasObject{container.NewVBox(
+			mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 				widget.NewLabel(relPath),
 				container.NewHScroll(list),
-			)}, imageLists.Objects...)
+			)}, mainPanel.Objects...)
 		}()
 	}
 }
