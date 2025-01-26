@@ -16,11 +16,10 @@ import (
 )
 
 type Entry struct {
-	Path           string
-	Children       []*Entry
-	Depth          int
-	isDir          bool
-	thumbnailCache *canvas.Image
+	Path     string
+	Children []*Entry
+	Depth    int
+	isDir    bool
 }
 
 const maxDepth = 2
@@ -35,7 +34,9 @@ var imageExts = map[string]bool{
 }
 
 var entries []*Entry
+var thumbnailCache = make(map[string]*canvas.Image)
 var currentPath = "."
+var loadCount = 0
 
 var directoryTree *widget.Tree
 var directoryTreeLabel *widget.Label
@@ -152,18 +153,19 @@ func addImage(entries []*Entry, imageLists *fyne.Container) {
 		if entry.isDir {
 			addImage(entry.Children, imageLists)
 		} else {
-			if entry.thumbnailCache == nil {
-				entry.thumbnailCache = canvas.NewImageFromFile(entry.Path)
-				entry.thumbnailCache.FillMode = canvas.ImageFillContain
-				entry.thumbnailCache.SetMinSize(fyne.NewSize(200, 200))
+			image, exists := thumbnailCache[entry.Path]
+			if !exists {
+				image = canvas.NewImageFromFile(entry.Path)
+				image.FillMode = canvas.ImageFillContain
+				image.SetMinSize(fyne.NewSize(200, 200))
+				thumbnailCache[entry.Path] = image
 			}
-			list.Add(entry.thumbnailCache)
+			list.Add(image)
 		}
 	}
 
 	if list.Objects != nil {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
-
 		imageLists.Objects = append([]fyne.CanvasObject{container.NewVBox(
 			widget.NewLabel(relPath),
 			container.NewHScroll(list),
@@ -181,6 +183,10 @@ func updateEntries(path string) {
 	currentPath = path
 	if oldPath == path {
 		return
+	}
+	loadCount++
+	if loadCount >= 5 {
+		clearUnusedCache()
 	}
 	entries = nil
 	result := addEntry(currentPath, 0, maxDepth)
@@ -231,4 +237,26 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 	}
 
 	return result
+}
+
+func clearUnusedCache() {
+	activePaths := make(map[string]bool)
+	var collectPaths func([]*Entry)
+	collectPaths = func(entries []*Entry) {
+		for _, entry := range entries {
+			if !entry.isDir {
+				activePaths[entry.Path] = true
+			}
+			if entry.Children != nil {
+				collectPaths(entry.Children)
+			}
+		}
+	}
+	collectPaths(entries)
+
+	for path := range thumbnailCache {
+		if !activePaths[path] {
+			delete(thumbnailCache, path)
+		}
+	}
 }
