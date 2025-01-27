@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"golang.org/x/image/draw"
 )
 
 type Entry struct {
@@ -257,17 +259,35 @@ func loadImageWithMmap(path string) (*canvas.Image, error) {
 		return nil, err
 	}
 
-	image := canvas.NewImageFromReader(bytes.NewReader(data), path)
-	image.FillMode = canvas.ImageFillContain
-	image.SetMinSize(thumbnailSize)
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
 
-	runtime.SetFinalizer(image, func(img *canvas.Image) {
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+
+	if width > height {
+		height = (height * int(thumbnailSize.Width)) / width
+		width = int(thumbnailSize.Width)
+	} else {
+		width = (width * int(thumbnailSize.Height)) / height
+		height = int(thumbnailSize.Height)
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+
+	canvasImage := canvas.NewImageFromImage(dst)
+	canvasImage.FillMode = canvas.ImageFillContain
+	canvasImage.SetMinSize(thumbnailSize)
+
+	runtime.SetFinalizer(canvasImage, func(img *canvas.Image) {
 		syscall.Munmap(data)
 	})
 
-	return image, nil
+	return canvasImage, nil
 }
-
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
 	switch currentViewMode {
