@@ -27,11 +27,26 @@ type Entry struct {
 	isDir    bool
 }
 
+type CacheNode struct {
+	key   string
+	image *canvas.Image
+	prev  *CacheNode
+	next  *CacheNode
+}
+
+type LRUCache struct {
+	capacity int
+	cache    map[string]*CacheNode
+	head     *CacheNode
+	tail     *CacheNode
+}
+
 const maxDepth = 2
 const (
 	ViewModeList = iota
 	ViewModeGrid
 )
+const maxCacheSize = 100
 
 var imageExts = map[string]bool{
 	".jpg":  true,
@@ -45,7 +60,7 @@ var backgroundRect *canvas.Rectangle
 var thumbnailSize = fyne.NewSize(200, 200)
 
 var entries []*Entry
-var thumbnailCache = make(map[string]*canvas.Image)
+var thumbnailCache = NewLRUCache(200)
 var currentPath = "."
 var loadCount = 0
 var currentViewMode = ViewModeList
@@ -165,6 +180,68 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
+func NewLRUCache(capacity int) *LRUCache {
+	return &LRUCache{
+		capacity: capacity,
+		cache:    make(map[string]*CacheNode),
+	}
+}
+
+func (c *LRUCache) moveToFront(node *CacheNode) {
+	if node == c.head {
+		return
+	}
+	if node == c.tail {
+		c.tail = node.prev
+		c.tail.next = nil
+	} else if node.prev != nil {
+		node.prev.next = node.next
+		node.next.prev = node.prev
+	}
+	node.prev = nil
+	node.next = c.head
+	if c.head != nil {
+		c.head.prev = node
+	}
+	c.head = node
+}
+
+func (c *LRUCache) add(key string, image *canvas.Image) {
+	if node, exists := c.cache[key]; exists {
+		node.image = image
+		c.moveToFront(node)
+		return
+	}
+
+	node := &CacheNode{key, image, nil, nil}
+	c.cache[key] = node
+
+	if c.head == nil {
+		c.head = node
+		c.tail = node
+	} else {
+		node.next = c.head
+		c.head.prev = node
+		c.head = node
+	}
+
+	if len(c.cache) > c.capacity {
+		delete(c.cache, c.tail.key)
+		c.tail = c.tail.prev
+		if c.tail != nil {
+			c.tail.next = nil
+		}
+	}
+}
+
+func (c *LRUCache) get(key string) (*canvas.Image, bool) {
+	if node, exists := c.cache[key]; exists {
+		c.moveToFront(node)
+		return node.image, true
+	}
+	return nil, false
+}
+
 func loadImageWithMmap(path string) (*canvas.Image, error) {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
@@ -210,7 +287,7 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 		if entry.isDir {
 			addImageHBox(entry.Children, mainPanel)
 		} else {
-			image, exists := thumbnailCache[entry.Path]
+			image, exists := thumbnailCache.get(entry.Path)
 			if !exists {
 				var err error
 				image, err = loadImageWithMmap(entry.Path)
@@ -218,7 +295,7 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 					fmt.Println("Error loading image: ", err)
 					continue
 				}
-				thumbnailCache[entry.Path] = image
+				thumbnailCache.add(entry.Path, image)
 			}
 			list.Add(image)
 		}
@@ -256,7 +333,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 		if entry.isDir {
 			addImageGrid(entry.Children, mainPanel)
 		} else {
-			image, exists := thumbnailCache[entry.Path]
+			image, exists := thumbnailCache.get(entry.Path)
 			if !exists {
 				var err error
 				image, err = loadImageWithMmap(entry.Path)
@@ -264,7 +341,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 					fmt.Println("Error loading image: ", err)
 					continue
 				}
-				thumbnailCache[entry.Path] = image
+				thumbnailCache.add(entry.Path, image)
 			}
 			grid.Add(image)
 		}
@@ -306,10 +383,12 @@ func updateEntries(path string) {
 	if oldPath == path {
 		return
 	}
-	loadCount++
-	if loadCount >= 5 {
-		clearUnusedCache()
-	}
+	/*
+		loadCount++
+		if loadCount >= 5 {
+			clearUnusedCache()
+		}
+	*/
 	entries = nil
 	result := addEntry(currentPath, 0, maxDepth)
 	entries = result
@@ -361,6 +440,7 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 	return result
 }
 
+/*
 func clearUnusedCache() {
 	activePaths := make(map[string]bool)
 	var collectPaths func([]*Entry)
@@ -382,3 +462,4 @@ func clearUnusedCache() {
 		}
 	}
 }
+*/
