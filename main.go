@@ -46,7 +46,6 @@ const (
 	ViewModeList = iota
 	ViewModeGrid
 )
-const maxCacheSize = 100
 
 var imageExts = map[string]bool{
 	".jpg":  true,
@@ -62,7 +61,6 @@ var thumbnailSize = fyne.NewSize(200, 200)
 var entries []*Entry
 var thumbnailCache = NewLRUCache(200)
 var currentPath = "."
-var loadCount = 0
 var currentViewMode = ViewModeList
 
 var directoryTree *widget.Tree
@@ -383,12 +381,6 @@ func updateEntries(path string) {
 	if oldPath == path {
 		return
 	}
-	/*
-		loadCount++
-		if loadCount >= 5 {
-			clearUnusedCache()
-		}
-	*/
 	entries = nil
 	result := addEntry(currentPath, 0, maxDepth)
 	entries = result
@@ -439,27 +431,3 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 
 	return result
 }
-
-/*
-func clearUnusedCache() {
-	activePaths := make(map[string]bool)
-	var collectPaths func([]*Entry)
-	collectPaths = func(entries []*Entry) {
-		for _, entry := range entries {
-			if !entry.isDir {
-				activePaths[entry.Path] = true
-			}
-			if entry.Children != nil {
-				collectPaths(entry.Children)
-			}
-		}
-	}
-	collectPaths(entries)
-
-	for path := range thumbnailCache {
-		if !activePaths[path] {
-			delete(thumbnailCache, path)
-		}
-	}
-}
-*/
