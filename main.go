@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -161,6 +165,38 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
+func loadImageWithMmap(path string) (*canvas.Image, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	fmt.Print("f")
+
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := syscall.Mmap(int(f.Fd()), 0, int(stat.Size()), syscall.PROT_READ, syscall.MAP_SHARED)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Print("m")
+
+	image := canvas.NewImageFromReader(bytes.NewReader(data), path)
+	image.FillMode = canvas.ImageFillContain
+	image.SetMinSize(thumbnailSize)
+
+	fmt.Print("i")
+
+	runtime.SetFinalizer(image, func(img *canvas.Image) {
+		syscall.Munmap(data)
+	})
+
+	return image, nil
+}
+
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
 	switch currentViewMode {
@@ -180,9 +216,12 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 		} else {
 			image, exists := thumbnailCache[entry.Path]
 			if !exists {
-				image = canvas.NewImageFromFile(entry.Path)
-				image.FillMode = canvas.ImageFillContain
-				image.SetMinSize(thumbnailSize)
+				var err error
+				image, err = loadImageWithMmap(entry.Path)
+				if err != nil {
+					fmt.Println("Error loading image: ", err)
+					continue
+				}
 				thumbnailCache[entry.Path] = image
 			}
 			list.Add(image)
@@ -193,6 +232,8 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 		go func() {
 			objLen := len(mainPanel.Objects)
+
+			fmt.Print("a")
 
 			if objLen%2 == 0 {
 				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
@@ -210,6 +251,8 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 					),
 				}, mainPanel.Objects...)
 			}
+
+			fmt.Print("b")
 		}()
 	}
 }
@@ -223,9 +266,12 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 		} else {
 			image, exists := thumbnailCache[entry.Path]
 			if !exists {
-				image = canvas.NewImageFromFile(entry.Path)
-				image.FillMode = canvas.ImageFillContain
-				image.SetMinSize(thumbnailSize)
+				var err error
+				image, err = loadImageWithMmap(entry.Path)
+				if err != nil {
+					fmt.Println("Error loading image: ", err)
+					continue
+				}
 				thumbnailCache[entry.Path] = image
 			}
 			grid.Add(image)
