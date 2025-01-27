@@ -373,7 +373,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 			if objLen%2 == 0 {
 				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 					widget.NewLabel(relPath),
-					container.NewHScroll(grid),
+					grid,
 				)}, mainPanel.Objects...)
 			} else {
 				mainPanel.Objects = append([]fyne.CanvasObject{
@@ -381,7 +381,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 						backgroundRect,
 						container.NewVBox(
 							widget.NewLabel(relPath),
-							container.NewHScroll(grid),
+							grid,
 						),
 					),
 				}, mainPanel.Objects...)
