@@ -171,7 +171,6 @@ func loadImageWithMmap(path string) (*canvas.Image, error) {
 		return nil, err
 	}
 	defer f.Close()
-	fmt.Print("f")
 
 	stat, err := f.Stat()
 	if err != nil {
@@ -182,13 +181,10 @@ func loadImageWithMmap(path string) (*canvas.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Print("m")
 
 	image := canvas.NewImageFromReader(bytes.NewReader(data), path)
 	image.FillMode = canvas.ImageFillContain
 	image.SetMinSize(thumbnailSize)
-
-	fmt.Print("i")
 
 	runtime.SetFinalizer(image, func(img *canvas.Image) {
 		syscall.Munmap(data)
@@ -233,8 +229,6 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 		go func() {
 			objLen := len(mainPanel.Objects)
 
-			fmt.Print("a")
-
 			if objLen%2 == 0 {
 				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 					widget.NewLabel(relPath),
@@ -251,8 +245,6 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 					),
 				}, mainPanel.Objects...)
 			}
-
-			fmt.Print("b")
 		}()
 	}
 }
