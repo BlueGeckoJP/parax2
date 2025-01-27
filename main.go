@@ -61,7 +61,7 @@ var backgroundRect *canvas.Rectangle
 var thumbnailSize = fyne.NewSize(200, 200)
 
 var entries []*Entry
-var thumbnailCache = NewLRUCache(200)
+var thumbnailCache = NewLRUCache(1000)
 var currentPath = "."
 var currentViewMode = ViewModeList
 
