@@ -9,6 +9,13 @@ type LRUCache struct {
 	tail     *CacheNode
 }
 
+type CacheNode struct {
+	key   string
+	image *canvas.Image
+	prev  *CacheNode
+	next  *CacheNode
+}
+
 func (c *LRUCache) moveToFront(node *CacheNode) {
 	if node == c.head {
 		return

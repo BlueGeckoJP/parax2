@@ -30,13 +30,6 @@ type Entry struct {
 	isDir    bool
 }
 
-type CacheNode struct {
-	key   string
-	image *canvas.Image
-	prev  *CacheNode
-	next  *CacheNode
-}
-
 const maxDepth = 2
 const (
 	ViewModeList = iota
