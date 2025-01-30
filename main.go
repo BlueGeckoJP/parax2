@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -136,6 +137,7 @@ func main() {
 	)
 
 	directoryTree.OnSelected = func(id widget.TreeNodeID) {
+		openImageWithDefaultApp(id)
 	}
 
 	directoryTreeLabel = widget.NewLabel("Tree in " + currentPath)
@@ -450,4 +452,12 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 	}
 
 	return result
+}
+
+func openImageWithDefaultApp(path string) {
+	cmd := exec.Command("xdg-open", path)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error opening image with default app:", err)
+	}
 }
