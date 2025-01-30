@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	OpenCommand []string `yaml:"open_command"`
+	ViewMode    int      `yaml:"view_mode"`
 }
 
 var configPath = []string{

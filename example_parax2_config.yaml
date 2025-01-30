@@ -1,2 +1,4 @@
 # {} is a placeholder, and the path to the image is automatically inserted in this location
 "open_command": ["image_viewer", "{}"]
+# ViewModeList = 0, ViewModeGrid = 1
+"view_mode": 0

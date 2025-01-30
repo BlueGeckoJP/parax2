@@ -60,6 +60,12 @@ func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("parax2")
 
+	if config != nil {
+		if config.ViewMode <= 1 {
+			currentViewMode = config.ViewMode
+		}
+	}
+
 	updateEntries(currentPath)
 
 	backgroundRect = canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
