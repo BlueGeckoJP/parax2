@@ -44,6 +44,12 @@ type LRUCache struct {
 	tail     *CacheNode
 }
 
+type ThumbnailWidget struct {
+	widget.BaseWidget
+	Image    *canvas.Image
+	OnTapped func()
+}
+
 const maxDepth = 2
 const (
 	ViewModeList = iota
@@ -244,7 +250,7 @@ func (c *LRUCache) get(key string) (*canvas.Image, bool) {
 	return nil, false
 }
 
-func loadImageWithMmap(path string) (*canvas.Image, error) {
+func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		return nil, err
@@ -284,11 +290,13 @@ func loadImageWithMmap(path string) (*canvas.Image, error) {
 	canvasImage.FillMode = canvas.ImageFillContain
 	canvasImage.SetMinSize(thumbnailSize)
 
-	runtime.SetFinalizer(canvasImage, func(img *canvas.Image) {
+	thumbnail := newThumbnail(canvasImage, path)
+
+	runtime.SetFinalizer(thumbnail, func(t *ThumbnailWidget) {
 		syscall.Munmap(data)
 	})
 
-	return canvasImage, nil
+	return thumbnail, nil
 }
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
@@ -308,16 +316,19 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 			addImageHBox(entry.Children, mainPanel)
 		} else {
 			image, exists := thumbnailCache.get(entry.Path)
+			var thumbnail *ThumbnailWidget
 			if !exists {
 				var err error
-				image, err = loadImageWithMmap(entry.Path)
+				thumbnail, err = loadImageWithMmap(entry.Path)
 				if err != nil {
 					fmt.Println("Error loading image: ", err)
 					continue
 				}
 				thumbnailCache.add(entry.Path, image)
+			} else {
+				thumbnail = newThumbnail(image, entry.Path)
 			}
-			list.Add(image)
+			list.Add(thumbnail)
 		}
 	}
 
@@ -354,16 +365,19 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 			addImageGrid(entry.Children, mainPanel)
 		} else {
 			image, exists := thumbnailCache.get(entry.Path)
+			var thumbnail *ThumbnailWidget
 			if !exists {
 				var err error
-				image, err = loadImageWithMmap(entry.Path)
+				thumbnail, err = loadImageWithMmap(entry.Path)
 				if err != nil {
 					fmt.Println("Error loading image: ", err)
 					continue
 				}
 				thumbnailCache.add(entry.Path, image)
+			} else {
+				thumbnail = newThumbnail(image, entry.Path)
 			}
-			grid.Add(image)
+			grid.Add(thumbnail)
 		}
 	}
 
@@ -459,5 +473,26 @@ func openImageWithDefaultApp(path string) {
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("Error opening image with default app:", err)
+	}
+}
+
+func newThumbnail(image *canvas.Image, path string) *ThumbnailWidget {
+	t := &ThumbnailWidget{
+		Image: image,
+		OnTapped: func() {
+			openImageWithDefaultApp(path)
+		},
+	}
+	t.ExtendBaseWidget(t)
+	return t
+}
+
+func (t *ThumbnailWidget) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(t.Image)
+}
+
+func (t *ThumbnailWidget) Tapped(_ *fyne.PointEvent) {
+	if t.OnTapped != nil {
+		t.OnTapped()
 	}
 }
