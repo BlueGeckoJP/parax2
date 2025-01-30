@@ -268,7 +268,7 @@ func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
 					fmt.Println("Error loading image: ", err)
 					continue
 				}
-				thumbnailCache.add(entry.Path, image)
+				thumbnailCache.add(entry.Path, thumbnail.Image)
 			} else {
 				thumbnail = newThumbnail(image, entry.Path)
 			}
@@ -317,7 +317,7 @@ func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
 					fmt.Println("Error loading image: ", err)
 					continue
 				}
-				thumbnailCache.add(entry.Path, image)
+				thumbnailCache.add(entry.Path, thumbnail.Image)
 			} else {
 				thumbnail = newThumbnail(image, entry.Path)
 			}
