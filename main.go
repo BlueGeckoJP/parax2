@@ -37,19 +37,6 @@ type CacheNode struct {
 	next  *CacheNode
 }
 
-type LRUCache struct {
-	capacity int
-	cache    map[string]*CacheNode
-	head     *CacheNode
-	tail     *CacheNode
-}
-
-type ThumbnailWidget struct {
-	widget.BaseWidget
-	Image    *canvas.Image
-	OnTapped func()
-}
-
 const maxDepth = 2
 const (
 	ViewModeList = iota
@@ -198,68 +185,6 @@ func main() {
 	myWindow.SetContent(split)
 	myWindow.Resize(fyne.NewSize(800, 600))
 	myWindow.ShowAndRun()
-}
-
-func NewLRUCache(capacity int) *LRUCache {
-	return &LRUCache{
-		capacity: capacity,
-		cache:    make(map[string]*CacheNode),
-	}
-}
-
-func (c *LRUCache) moveToFront(node *CacheNode) {
-	if node == c.head {
-		return
-	}
-	if node == c.tail {
-		c.tail = node.prev
-		c.tail.next = nil
-	} else if node.prev != nil {
-		node.prev.next = node.next
-		node.next.prev = node.prev
-	}
-	node.prev = nil
-	node.next = c.head
-	if c.head != nil {
-		c.head.prev = node
-	}
-	c.head = node
-}
-
-func (c *LRUCache) add(key string, image *canvas.Image) {
-	if node, exists := c.cache[key]; exists {
-		node.image = image
-		c.moveToFront(node)
-		return
-	}
-
-	node := &CacheNode{key, image, nil, nil}
-	c.cache[key] = node
-
-	if c.head == nil {
-		c.head = node
-		c.tail = node
-	} else {
-		node.next = c.head
-		c.head.prev = node
-		c.head = node
-	}
-
-	if len(c.cache) > c.capacity {
-		delete(c.cache, c.tail.key)
-		c.tail = c.tail.prev
-		if c.tail != nil {
-			c.tail.next = nil
-		}
-	}
-}
-
-func (c *LRUCache) get(key string) (*canvas.Image, bool) {
-	if node, exists := c.cache[key]; exists {
-		c.moveToFront(node)
-		return node.image, true
-	}
-	return nil, false
 }
 
 func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
@@ -485,26 +410,5 @@ func openImageWithDefaultApp(path string) {
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("Error opening image with default app:", err)
-	}
-}
-
-func newThumbnail(image *canvas.Image, path string) *ThumbnailWidget {
-	t := &ThumbnailWidget{
-		Image: image,
-		OnTapped: func() {
-			openImageWithDefaultApp(path)
-		},
-	}
-	t.ExtendBaseWidget(t)
-	return t
-}
-
-func (t *ThumbnailWidget) CreateRenderer() fyne.WidgetRenderer {
-	return widget.NewSimpleRenderer(t.Image)
-}
-
-func (t *ThumbnailWidget) Tapped(_ *fyne.PointEvent) {
-	if t.OnTapped != nil {
-		t.OnTapped()
 	}
 }
