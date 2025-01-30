@@ -51,6 +51,7 @@ var entries []*Entry
 var thumbnailCache = NewLRUCache(5000)
 var currentPath = "."
 var currentViewMode = ViewModeList
+var config = loadConfig()
 
 var directoryTree *widget.Tree
 var directoryTreeLabel *widget.Label
@@ -399,7 +400,23 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 }
 
 func openImageWithDefaultApp(path string) {
-	cmd := exec.Command("xdg-open", path)
+	var cmd *exec.Cmd
+	if config != nil {
+		var placeholderIndex int
+		for i, arg := range config.OpenCommand {
+			if arg == "{}" {
+				placeholderIndex = i
+				break
+			}
+		}
+
+		customCommand := config.OpenCommand
+		customCommand[placeholderIndex] = path
+		cmd = exec.Command(customCommand[0], customCommand[1:]...)
+	} else {
+		cmd = exec.Command("xdg-open", path)
+	}
+
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("Error opening image with default app:", err)
