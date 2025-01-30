@@ -2,3 +2,7 @@
 "open_command": ["image_viewer", "{}"]
 # ViewModeList = 0, ViewModeGrid = 1
 "view_mode": 0
+# Maximum depth to be explored, > 0
+"max_depth": 2
+# Maximum number of cached thumbnails, > 0
+"cache_limit": 5000

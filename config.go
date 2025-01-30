@@ -10,6 +10,8 @@ import (
 type Config struct {
 	OpenCommand []string `yaml:"open_command"`
 	ViewMode    int      `yaml:"view_mode"`
+	MaxDepth    int      `yaml:"max_depth"`
+	CacheLimit  int      `yaml:"cache_limit"`
 }
 
 var configPath = []string{

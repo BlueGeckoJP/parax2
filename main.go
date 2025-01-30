@@ -30,7 +30,6 @@ type Entry struct {
 	isDir    bool
 }
 
-const maxDepth = 2
 const (
 	ViewModeList = iota
 	ViewModeGrid
@@ -46,6 +45,7 @@ var imageExts = map[string]bool{
 }
 var backgroundRect *canvas.Rectangle
 var thumbnailSize = fyne.NewSize(200, 200)
+var maxDepth = 2
 
 var entries []*Entry
 var thumbnailCache = NewLRUCache(5000)
@@ -64,6 +64,13 @@ func main() {
 		if config.ViewMode <= 1 {
 			currentViewMode = config.ViewMode
 		}
+		if config.MaxDepth > 0 {
+			maxDepth = config.MaxDepth
+		}
+		if config.CacheLimit > 0 {
+			thumbnailCache = NewLRUCache(config.CacheLimit)
+		}
+		fmt.Println("Received raw config: ", config)
 	}
 
 	updateEntries(currentPath)
