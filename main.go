@@ -400,8 +400,8 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 }
 
 func openImageWithDefaultApp(path string) {
-	var cmd *exec.Cmd
-	if config != nil {
+	cmd := exec.Command("xdg-open", path)
+	if config != nil && config.OpenCommand != nil {
 		var placeholderIndex int
 		for i, arg := range config.OpenCommand {
 			if arg == "{}" {
@@ -413,8 +413,6 @@ func openImageWithDefaultApp(path string) {
 		customCommand := config.OpenCommand
 		customCommand[placeholderIndex] = path
 		cmd = exec.Command(customCommand[0], customCommand[1:]...)
-	} else {
-		cmd = exec.Command("xdg-open", path)
 	}
 
 	err := cmd.Run()
