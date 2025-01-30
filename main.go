@@ -143,7 +143,19 @@ func main() {
 	)
 
 	directoryTree.OnSelected = func(id widget.TreeNodeID) {
-		openImageWithDefaultApp(id)
+		var findId func([]*Entry)
+		findId = func(entries []*Entry) {
+			for _, entry := range entries {
+				fmt.Println(entry.Path == id && !entry.isDir, entry)
+				if entry.Path == id && !entry.isDir {
+					openImageWithDefaultApp(entry.Path)
+				}
+				if entry.Children != nil {
+					findId(entry.Children)
+				}
+			}
+		}
+		go findId(entries)
 	}
 
 	directoryTreeLabel = widget.NewLabel("Tree in " + currentPath)
