@@ -21,6 +21,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"golang.org/x/image/draw"
+	"golang.org/x/image/webp"
 )
 
 type Entry struct {
@@ -42,6 +43,7 @@ var imageExts = map[string]bool{
 	".gif":  true,
 	".bmp":  true,
 	".svg":  true,
+	".webp": true,
 }
 var backgroundRect *canvas.Rectangle
 var thumbnailSize = fyne.NewSize(200, 200)
@@ -211,9 +213,18 @@ func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 		return nil, err
 	}
 
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return nil, err
+	var img image.Image
+
+	if filepath.Ext(path) == ".webp" {
+		img, err = webp.Decode(bytes.NewReader(data))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		img, _, err = image.Decode(bytes.NewReader(data))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	bounds := img.Bounds()
