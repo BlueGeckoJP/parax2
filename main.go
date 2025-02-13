@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 
 	"fyne.io/fyne/v2"
@@ -48,6 +49,8 @@ var imageExts = map[string]bool{
 var backgroundRect *canvas.Rectangle
 var thumbnailSize = fyne.NewSize(200, 200)
 var maxDepth = 2
+var wgMax = 10
+var innerWGMax = 50
 
 var entries []*Entry
 var thumbnailCache = NewLRUCache(5000)
@@ -57,10 +60,11 @@ var config = loadConfig()
 
 var directoryTree *widget.Tree
 var directoryTreeLabel *widget.Label
+var myWindow fyne.Window
 
 func main() {
 	myApp := app.New()
-	myWindow := myApp.NewWindow("parax2")
+	myWindow = myApp.NewWindow("parax2")
 
 	if config != nil {
 		if config.ViewMode <= 1 {
@@ -255,110 +259,89 @@ func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 }
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
+	myWindow.SetTitle("Loading - parax2")
+	wg := &WGWithCounter{
+		wg:    sync.WaitGroup{},
+		count: 0,
+		max:   wgMax,
+	}
+
+	wg.Add(1, func() { addImage(entries, mainPanel, wg) })
+
+	wg.wg.Wait()
+	mainPanel.Refresh()
+	myWindow.SetTitle("parax2")
+	println("updateMainPanel done")
+}
+
+func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
+	defer wg.Done()
+
+	var c *fyne.Container
 	switch currentViewMode {
 	case ViewModeList:
-		addImageHBox(entries, mainPanel)
+		c = container.NewHBox()
 	case ViewModeGrid:
-		addImageGrid(entries, mainPanel)
+		c = container.NewGridWrap(thumbnailSize)
 	}
-}
 
-func addImageHBox(entries []*Entry, mainPanel *fyne.Container) {
-	list := container.NewHBox()
+	innerWG := &WGWithCounter{
+		wg:    sync.WaitGroup{},
+		count: 0,
+		max:   innerWGMax,
+	}
 
 	for _, entry := range entries {
 		if entry.isDir {
-			addImageHBox(entry.Children, mainPanel)
+			wg.Add(1, func() { addImage(entry.Children, mainPanel, wg) })
 		} else {
-			image, exists := thumbnailCache.get(entry.Path)
-			var thumbnail *ThumbnailWidget
-			if !exists {
-				var err error
-				thumbnail, err = loadImageWithMmap(entry.Path)
-				if err != nil {
-					fmt.Println("Error loading image: ", err)
-					continue
-				}
-				thumbnailCache.add(entry.Path, thumbnail.Image)
-			} else {
-				thumbnail = newThumbnail(image, entry.Path)
-			}
-			list.Add(thumbnail)
+			innerWG.Add(1, func() {
+				go func() {
+					defer innerWG.Done()
+					image, exists := thumbnailCache.get(entry.Path)
+					var thumbnail *ThumbnailWidget
+					if !exists {
+						var err error
+						thumbnail, err = loadImageWithMmap(entry.Path)
+						if err != nil {
+							fmt.Println("Error loading image: ", err)
+							return
+						}
+						thumbnailCache.add(entry.Path, thumbnail.Image)
+					} else {
+						thumbnail = newThumbnail(image, entry.Path)
+					}
+					c.Add(thumbnail)
+				}()
+			})
 		}
 	}
 
-	if list.Objects != nil {
-		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
-		go func() {
-			objLen := len(mainPanel.Objects)
+	go func() {
+		innerWG.wg.Wait()
 
-			if objLen%2 == 0 {
-				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
-					widget.NewLabel(relPath),
-					container.NewHScroll(list),
-				)}, mainPanel.Objects...)
-			} else {
-				mainPanel.Objects = append([]fyne.CanvasObject{
-					container.NewStack(
-						backgroundRect,
-						container.NewVBox(
-							widget.NewLabel(relPath),
-							container.NewHScroll(list),
+		if c.Objects != nil {
+			relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
+			go func() {
+				if wg.count == 0 {
+					mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
+						widget.NewLabel(relPath),
+						container.NewHScroll(c),
+					)}, mainPanel.Objects...)
+				} else {
+					mainPanel.Objects = append([]fyne.CanvasObject{
+						container.NewStack(
+							backgroundRect,
+							container.NewVBox(
+								widget.NewLabel(relPath),
+								container.NewHScroll(c),
+							),
 						),
-					),
-				}, mainPanel.Objects...)
-			}
-		}()
-	}
-}
-
-func addImageGrid(entries []*Entry, mainPanel *fyne.Container) {
-	grid := container.NewGridWrap(thumbnailSize)
-
-	for _, entry := range entries {
-		if entry.isDir {
-			addImageGrid(entry.Children, mainPanel)
-		} else {
-			image, exists := thumbnailCache.get(entry.Path)
-			var thumbnail *ThumbnailWidget
-			if !exists {
-				var err error
-				thumbnail, err = loadImageWithMmap(entry.Path)
-				if err != nil {
-					fmt.Println("Error loading image: ", err)
-					continue
+					}, mainPanel.Objects...)
 				}
-				thumbnailCache.add(entry.Path, thumbnail.Image)
-			} else {
-				thumbnail = newThumbnail(image, entry.Path)
-			}
-			grid.Add(thumbnail)
+			}()
 		}
-	}
-
-	if grid.Objects != nil {
-		relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
-		go func() {
-			objLen := len(mainPanel.Objects)
-
-			if objLen%2 == 0 {
-				mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
-					widget.NewLabel(relPath),
-					grid,
-				)}, mainPanel.Objects...)
-			} else {
-				mainPanel.Objects = append([]fyne.CanvasObject{
-					container.NewStack(
-						backgroundRect,
-						container.NewVBox(
-							widget.NewLabel(relPath),
-							grid,
-						),
-					),
-				}, mainPanel.Objects...)
-			}
-		}()
-	}
+	}()
 }
 
 func isImageFile(filename string) bool {
