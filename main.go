@@ -46,7 +46,6 @@ var imageExts = map[string]bool{
 	".svg":  true,
 	".webp": true,
 }
-var backgroundRect *canvas.Rectangle
 var thumbnailSize = fyne.NewSize(200, 200)
 var maxDepth = 2
 var wgMax = 10
@@ -80,9 +79,6 @@ func main() {
 	}
 
 	updateEntries(currentPath)
-
-	backgroundRect = canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
-	backgroundRect.SetMinSize(thumbnailSize)
 
 	directoryTree = widget.NewTree(
 		func(id widget.TreeNodeID) []widget.TreeNodeID {
@@ -330,22 +326,19 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 					newC = c
 				}
 
-				if wg.count == 0 {
-					mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
-						widget.NewLabel(relPath),
-						newC,
-					)}, mainPanel.Objects...)
-				} else {
-					mainPanel.Objects = append([]fyne.CanvasObject{
-						container.NewStack(
-							backgroundRect,
-							container.NewVBox(
-								widget.NewLabel(relPath),
-								newC,
-							),
-						),
-					}, mainPanel.Objects...)
-				}
+				cVBox := container.NewVBox(
+					widget.NewLabel(relPath),
+					newC,
+				)
+
+				backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
+
+				mainPanel.Objects = append([]fyne.CanvasObject{
+					container.NewStack(
+						backgroundRect,
+						cVBox,
+					),
+				}, mainPanel.Objects...)
 			}()
 		}
 	}()
