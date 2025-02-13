@@ -323,10 +323,17 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 		if c.Objects != nil {
 			relPath, _ := filepath.Rel(currentPath, filepath.Dir(entries[0].Path))
 			go func() {
+				var newC fyne.CanvasObject
+				if currentViewMode == ViewModeList {
+					newC = container.NewHScroll(c)
+				} else {
+					newC = c
+				}
+
 				if wg.count == 0 {
 					mainPanel.Objects = append([]fyne.CanvasObject{container.NewVBox(
 						widget.NewLabel(relPath),
-						container.NewHScroll(c),
+						newC,
 					)}, mainPanel.Objects...)
 				} else {
 					mainPanel.Objects = append([]fyne.CanvasObject{
@@ -334,7 +341,7 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 							backgroundRect,
 							container.NewVBox(
 								widget.NewLabel(relPath),
-								container.NewHScroll(c),
+								newC,
 							),
 						),
 					}, mainPanel.Objects...)
