@@ -214,6 +214,24 @@ func main() {
 }
 
 func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
+	img, err := getScaledImage(path)
+	if err != nil {
+		return nil, err
+	}
+
+	canvasImage := canvas.NewImageFromImage(img)
+	canvasImage.FillMode = canvas.ImageFillContain
+	canvasImage.SetMinSize(thumbnailSize)
+
+	thumbnail := newThumbnail(canvasImage, path)
+
+	return thumbnail, nil
+}
+
+func getScaledImage(path string) (image.Image, error) {
+	var img image.Image
+	var err error
+
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		return nil, err
@@ -229,8 +247,6 @@ func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var img image.Image
 
 	if filepath.Ext(path) == ".webp" {
 		img, err = webp.Decode(bytes.NewReader(data))
@@ -258,21 +274,12 @@ func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 	dst := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
 
-	img = nil
-
-	canvasImage := canvas.NewImageFromImage(dst)
-	canvasImage.FillMode = canvas.ImageFillContain
-	canvasImage.SetMinSize(thumbnailSize)
-
-	thumbnail := newThumbnail(canvasImage, path)
-
-	runtime.SetFinalizer(thumbnail, func(t *ThumbnailWidget) {
+	runtime.SetFinalizer(&data, func(_ *[]byte) {
 		syscall.Munmap(data)
 	})
 
-	return thumbnail, nil
+	return dst, nil
 }
-
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
 	myWindow.SetTitle("Loading - parax2")
@@ -323,6 +330,8 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 						return
 					}
 					thumbnailCache.add(entry.Path, thumbnail.Image)
+
+					runtime.GC()
 				} else {
 					thumbnail = newThumbnail(image, entry.Path)
 				}
