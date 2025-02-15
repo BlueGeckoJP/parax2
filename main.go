@@ -258,6 +258,8 @@ func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 	dst := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
 
+	img = nil
+
 	canvasImage := canvas.NewImageFromImage(dst)
 	canvasImage.FillMode = canvas.ImageFillContain
 	canvasImage.SetMinSize(thumbnailSize)
@@ -270,6 +272,7 @@ func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 
 	return thumbnail, nil
 }
+
 func updateMainPanel(mainPanel *fyne.Container) {
 	mainPanel.Objects = nil
 	myWindow.SetTitle("Loading - parax2")
