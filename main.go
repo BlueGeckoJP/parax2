@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -66,10 +67,17 @@ var directoryTreeLabel *widget.Label
 var myWindow fyne.Window
 
 func main() {
-	go func() {
-		err := http.ListenAndServe("localhost:6060", nil)
-		log.Println(err)
-	}()
+	ifDebug := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+
+	if *ifDebug {
+		addr := "localhost:6060"
+		log.Println("Enabled debug mode!! :", addr)
+		go func() {
+			err := http.ListenAndServe(addr, nil)
+			log.Println(err)
+		}()
+	}
 
 	myApp := app.New()
 	myWindow = myApp.NewWindow("parax2")
