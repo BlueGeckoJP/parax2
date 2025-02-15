@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -92,7 +91,7 @@ func main() {
 		if config.CacheLimit > 0 {
 			thumbnailCache = NewLRUCache(config.CacheLimit)
 		}
-		fmt.Println("Received raw config: ", config)
+		log.Println("Received raw config: ", config)
 	}
 
 	updateEntries(currentPath)
@@ -159,7 +158,6 @@ func main() {
 		var findId func([]*Entry)
 		findId = func(entries []*Entry) {
 			for _, entry := range entries {
-				fmt.Println(entry.Path == id && !entry.isDir, entry)
 				if entry.Path == id && !entry.isDir {
 					openImageWithDefaultApp(entry.Path)
 				}
@@ -326,7 +324,7 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 					var err error
 					thumbnail, err = loadImageWithMmap(entry.Path)
 					if err != nil {
-						fmt.Println("Error loading image: ", err)
+						log.Fatalln("Error loading image: ", err)
 						return
 					}
 					thumbnailCache.add(entry.Path, thumbnail.Image)
@@ -454,12 +452,12 @@ func openImageWithDefaultApp(path string) {
 	}
 
 	if err := cmd.Start(); err != nil {
-		fmt.Println("Error starting command: ", err)
+		log.Fatalln("Error starting command: ", err)
 		return
 	}
 
 	if err := cmd.Wait(); err != nil {
-		fmt.Println("Error waiting for command: ", err)
+		log.Fatalln("Error waiting for command: ", err)
 		return
 	}
 }
