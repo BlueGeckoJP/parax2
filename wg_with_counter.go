@@ -18,16 +18,14 @@ func (wg *WGWithCounter) Add(delta int, function func()) {
 	if wg.count <= wg.max {
 		go function()
 	} else {
-		go func() {
-			for {
-				if wg.count <= wg.max {
-					function()
-					return
-				} else {
-					time.Sleep(10 * time.Millisecond)
-				}
+		for {
+			if wg.count <= wg.max {
+				go function()
+				return
+			} else {
+				time.Sleep(10 * time.Millisecond)
 			}
-		}()
+		}
 	}
 }
 
