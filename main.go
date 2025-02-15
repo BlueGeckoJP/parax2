@@ -312,23 +312,21 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 			wg.Add(1, func() { addImage(entry.Children, mainPanel, wg) })
 		} else {
 			innerWG.Add(1, func() {
-				go func() {
-					defer innerWG.Done()
-					image, exists := thumbnailCache.get(entry.Path)
-					var thumbnail *ThumbnailWidget
-					if !exists {
-						var err error
-						thumbnail, err = loadImageWithMmap(entry.Path)
-						if err != nil {
-							fmt.Println("Error loading image: ", err)
-							return
-						}
-						thumbnailCache.add(entry.Path, thumbnail.Image)
-					} else {
-						thumbnail = newThumbnail(image, entry.Path)
+				defer innerWG.Done()
+				image, exists := thumbnailCache.get(entry.Path)
+				var thumbnail *ThumbnailWidget
+				if !exists {
+					var err error
+					thumbnail, err = loadImageWithMmap(entry.Path)
+					if err != nil {
+						fmt.Println("Error loading image: ", err)
+						return
 					}
-					c.Add(thumbnail)
-				}()
+					thumbnailCache.add(entry.Path, thumbnail.Image)
+				} else {
+					thumbnail = newThumbnail(image, entry.Path)
+				}
+				c.Add(thumbnail)
 			})
 		}
 	}
