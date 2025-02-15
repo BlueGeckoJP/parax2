@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +25,9 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/webp"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 type Entry struct {
@@ -62,6 +67,18 @@ var directoryTreeLabel *widget.Label
 var myWindow fyne.Window
 
 func main() {
+	ifDebug := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+
+	if *ifDebug {
+		addr := "localhost:6060"
+		log.Println("Enabled debug mode!! :", addr)
+		go func() {
+			err := http.ListenAndServe(addr, nil)
+			log.Println(err)
+		}()
+	}
+
 	myApp := app.New()
 	myWindow = myApp.NewWindow("parax2")
 
