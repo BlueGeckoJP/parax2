@@ -6,3 +6,5 @@
 "max_depth": 2
 # Maximum number of cached thumbnails, > 0
 "cache_limit": 5000
+# Maximum number of goroutines, > 1
+"wg_max": 8

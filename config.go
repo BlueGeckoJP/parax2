@@ -12,6 +12,7 @@ type Config struct {
 	ViewMode    int      `yaml:"view_mode"`
 	MaxDepth    int      `yaml:"max_depth"`
 	CacheLimit  int      `yaml:"cache_limit"`
+	WGMax       int      `yaml:"wg_max"`
 }
 
 var configPath = []string{

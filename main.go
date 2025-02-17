@@ -64,6 +64,9 @@ func main() {
 		if config.CacheLimit > 0 {
 			thumbnailCache = NewLRUCache(config.CacheLimit)
 		}
+		if config.WGMax > 1 {
+			wgMax = config.WGMax
+		}
 		log.Println("Received raw config: ", config)
 	}
 
