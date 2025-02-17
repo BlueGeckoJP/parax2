@@ -113,7 +113,7 @@ func (m *MainPanel) Update(currentPath string) {
 	}
 
 	myWindow.SetTitle("parax2")
-	println("MainPanel.Update done")
+	log.Println("MainPanel.Update done")
 }
 
 func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
