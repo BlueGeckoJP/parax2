@@ -28,6 +28,7 @@ type Entry struct {
 
 var thumbnailSize = fyne.NewSize(200, 200)
 var maxDepth = 2
+var wgMax = 8
 
 var thumbnailCache = NewLRUCache(5000)
 var config = loadConfig()

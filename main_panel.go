@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -137,34 +138,43 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 		return
 	}
 
+	wg := &WGWithCounter{
+		wg:    sync.WaitGroup{},
+		count: 0,
+		max:   wgMax,
+	}
+
 	for _, v := range files {
 		p := filepath.Join(currentPath, v.Name())
 		if isImageFile(v.Name()) {
-			var thumbnail *ThumbnailWidget
-			image, exists := thumbnailCache.get(p)
-			if !exists {
-				thumbnailImage, err := loadThumbnail(p)
-				if err != nil {
-					log.Println("Error loading thumbnail:", err)
-					continue
+			wg.Add(1, func() {
+				defer wg.Done()
+				var thumbnail *ThumbnailWidget
+				image, exists := thumbnailCache.get(p)
+				if !exists {
+					thumbnailImage, err := loadThumbnail(p)
+					if err != nil {
+						log.Println("Error loading thumbnail:", err)
+						return
+					}
+
+					canvasImage := canvas.NewImageFromImage(thumbnailImage)
+					canvasImage.FillMode = canvas.ImageFillContain
+					canvasImage.SetMinSize(thumbnailSize)
+
+					thumbnail = newThumbnail(canvasImage, p)
+
+					thumbnailCache.add(p, canvasImage)
+				} else {
+					thumbnail = newThumbnail(image, p)
 				}
-
-				canvasImage := canvas.NewImageFromImage(thumbnailImage)
-				canvasImage.FillMode = canvas.ImageFillContain
-				canvasImage.SetMinSize(thumbnailSize)
-
-				thumbnail = newThumbnail(canvasImage, p)
-
-				thumbnailCache.add(p, canvasImage)
-			} else {
-				thumbnail = newThumbnail(image, p)
-			}
-			c.Add(thumbnail)
-			*entries = append(*entries, &Entry{
-				Path:     p,
-				Children: nil,
-				IsDir:    false,
-				Depth:    depth,
+				c.Add(thumbnail)
+				*entries = append(*entries, &Entry{
+					Path:     p,
+					Children: nil,
+					IsDir:    false,
+					Depth:    depth,
+				})
 			})
 		} else if v.IsDir() && v.Name()[0] != '.' {
 			if maxDepth > depth {
@@ -179,6 +189,8 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 			}
 		}
 	}
+
+	wg.wg.Wait()
 
 	if c.Objects != nil {
 		relPath, _ := filepath.Rel(m.originalPath, currentPath)
