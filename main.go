@@ -1,29 +1,19 @@
 package main
 
 import (
-	"bytes"
 	"flag"
-	"image"
-	"image/color"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
-	"sync"
-	"syscall"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"golang.org/x/image/draw"
-	"golang.org/x/image/webp"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -33,32 +23,13 @@ type Entry struct {
 	Path     string
 	Children []*Entry
 	Depth    int
-	isDir    bool
+	IsDir    bool
 }
 
-const (
-	ViewModeList = iota
-	ViewModeGrid
-)
-
-var imageExts = map[string]bool{
-	".jpg":  true,
-	".jpeg": true,
-	".png":  true,
-	".gif":  true,
-	".bmp":  true,
-	".svg":  true,
-	".webp": true,
-}
 var thumbnailSize = fyne.NewSize(200, 200)
 var maxDepth = 2
-var wgMax = 10
-var innerWGMax = 10
 
-var entries []*Entry
 var thumbnailCache = NewLRUCache(5000)
-var currentPath = "."
-var currentViewMode = ViewModeList
 var config = loadConfig()
 
 var directoryTree *widget.Tree
@@ -80,10 +51,11 @@ func main() {
 
 	myApp := app.New()
 	myWindow = myApp.NewWindow("parax2")
+	mainPanel := newMainPanel()
 
 	if config != nil {
 		if config.ViewMode <= 1 {
-			currentViewMode = config.ViewMode
+			mainPanel.viewMode = config.ViewMode
 		}
 		if config.MaxDepth > 0 {
 			maxDepth = config.MaxDepth
@@ -94,20 +66,18 @@ func main() {
 		log.Println("Received raw config: ", config)
 	}
 
-	updateEntries(currentPath)
-
 	directoryTree = widget.NewTree(
 		func(id widget.TreeNodeID) []widget.TreeNodeID {
 			if id == "" {
 				children := make([]widget.TreeNodeID, 0)
-				for _, entry := range entries {
+				for _, entry := range mainPanel.entries {
 					children = append(children, entry.Path)
 				}
 				return children
 			}
 
-			for _, entry := range entries {
-				if entry.Path == id && entry.isDir {
+			for _, entry := range mainPanel.entries {
+				if entry.Path == id && entry.IsDir {
 					children := make([]widget.TreeNodeID, 0)
 					for _, child := range entry.Children {
 						children = append(children, child.Path)
@@ -158,7 +128,7 @@ func main() {
 		var findId func([]*Entry)
 		findId = func(entries []*Entry) {
 			for _, entry := range entries {
-				if entry.Path == id && !entry.isDir {
+				if entry.Path == id && !entry.IsDir {
 					openImageWithDefaultApp(entry.Path)
 				}
 				if entry.Children != nil {
@@ -166,14 +136,12 @@ func main() {
 				}
 			}
 		}
-		go findId(entries)
+		go findId(mainPanel.entries)
 	}
 
-	directoryTreeLabel = widget.NewLabel("Tree in " + currentPath)
+	directoryTreeLabel = widget.NewLabel("Tree in " + filepath.Base(mainPanel.originalPath))
 
 	leftPanel := container.New(layout.NewBorderLayout(directoryTreeLabel, nil, nil, nil), directoryTreeLabel, directoryTree)
-
-	mainPanel := container.NewVBox()
 
 	mainMenu := fyne.NewMainMenu(
 		fyne.NewMenu("File",
@@ -184,26 +152,25 @@ func main() {
 						return
 					}
 					if reader != nil {
-						updateEntries(reader.Path())
-						updateMainPanel(mainPanel)
+						mainPanel.Update(reader.Path())
 					}
 				}, myWindow)
 			})),
 		fyne.NewMenu("View",
 			fyne.NewMenuItem("List View", func() {
-				currentViewMode = ViewModeList
-				updateMainPanel(mainPanel)
+				mainPanel.viewMode = ViewModeList
+				mainPanel.Update(mainPanel.originalPath)
 			}),
 			fyne.NewMenuItem("Grid View", func() {
-				currentViewMode = ViewModeGrid
-				updateMainPanel(mainPanel)
+				mainPanel.viewMode = ViewModeGrid
+				mainPanel.Update(mainPanel.originalPath)
 			}),
 		),
 	)
 
 	myWindow.SetMainMenu(mainMenu)
 
-	split := container.NewHSplit(leftPanel, container.NewVScroll(mainPanel))
+	split := container.NewHSplit(leftPanel, container.NewVScroll(mainPanel.c))
 	split.SetOffset(0.2)
 
 	myWindow.SetContent(split)
@@ -211,6 +178,7 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
+/*
 func loadImageWithMmap(path string) (*ThumbnailWidget, error) {
 	img, err := getScaledImage(path)
 	if err != nil {
@@ -367,13 +335,8 @@ func addImage(entries []*Entry, mainPanel *fyne.Container, wg *WGWithCounter) {
 			}()
 		}
 	}()
-}
-
-func isImageFile(filename string) bool {
-	ext := strings.ToLower(filepath.Ext(filename))
-	return imageExts[ext]
-}
-
+}*/
+/*
 func updateEntries(path string) {
 	oldPath := currentPath
 	currentPath = path
@@ -429,7 +392,7 @@ func addEntry(path string, depth int, maxDepth int) []*Entry {
 	}
 
 	return result
-}
+}*/
 
 func openImageWithDefaultApp(path string) {
 	var cmd *exec.Cmd
@@ -452,12 +415,12 @@ func openImageWithDefaultApp(path string) {
 	}
 
 	if err := cmd.Start(); err != nil {
-		log.Fatalln("Error starting command: ", err)
+		log.Println("Error starting command: ", err)
 		return
 	}
 
 	if err := cmd.Wait(); err != nil {
-		log.Fatalln("Error waiting for command: ", err)
+		log.Println("Error waiting for command: ", err)
 		return
 	}
 }
