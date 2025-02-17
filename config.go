@@ -27,7 +27,13 @@ func loadConfig() *Config {
 			continue
 		}
 
-		var config Config
+		config := Config{
+			OpenCommand: nil,
+			ViewMode:    -255,
+			MaxDepth:    -255,
+			CacheLimit:  -255,
+			WGMax:       -255,
+		}
 		err = yaml.Unmarshal(data, &config)
 		if err != nil {
 			continue

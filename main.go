@@ -55,7 +55,7 @@ func main() {
 	mainPanel := newMainPanel()
 
 	if config != nil {
-		if config.ViewMode <= 1 {
+		if config.ViewMode == 0 || config.ViewMode == 1 {
 			mainPanel.viewMode = config.ViewMode
 		}
 		if config.MaxDepth > 0 {
