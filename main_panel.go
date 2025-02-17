@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
@@ -195,6 +196,10 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 	wg.wg.Wait()
 
 	if c.Objects != nil {
+		sort.SliceStable(c.Objects, func(i, j int) bool {
+			return c.Objects[i].(*ThumbnailWidget).Path < c.Objects[j].(*ThumbnailWidget).Path
+		})
+
 		relPath, _ := filepath.Rel(m.originalPath, currentPath)
 
 		var cVBox *fyne.Container

@@ -10,6 +10,7 @@ type ThumbnailWidget struct {
 	widget.BaseWidget
 	Image    *canvas.Image
 	OnTapped func()
+	Path     string
 }
 
 func (t *ThumbnailWidget) CreateRenderer() fyne.WidgetRenderer {
@@ -28,6 +29,7 @@ func newThumbnail(image *canvas.Image, path string) *ThumbnailWidget {
 		OnTapped: func() {
 			openImageWithDefaultApp(path)
 		},
+		Path: path,
 	}
 	t.ExtendBaseWidget(t)
 	return t
