@@ -91,6 +91,8 @@ type MainPanel struct {
 }
 
 func (m *MainPanel) Update(currentPath string) {
+	log.Println("MainPanel.Update called with path:", currentPath)
+
 	currentPath, err := filepath.Abs(currentPath)
 	if err != nil {
 		log.Println("Error getting absolute path:", err)
