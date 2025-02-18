@@ -210,8 +210,12 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 			)
 		} else {
 			cVBox = container.NewVBox(
-				widget.NewLabel(relPath),
-				c,
+				widget.NewAccordion(
+					widget.NewAccordionItem(
+						relPath,
+						c,
+					),
+				),
 			)
 		}
 
