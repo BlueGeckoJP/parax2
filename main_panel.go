@@ -92,6 +92,10 @@ type MainPanel struct {
 }
 
 func (m *MainPanel) Update(currentPath string) {
+	if m.originalPath == "." && m.originalPath == currentPath {
+		return
+	}
+
 	log.Println("MainPanel.Update called with path:", currentPath)
 
 	currentPath, err := filepath.Abs(currentPath)
