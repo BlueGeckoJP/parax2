@@ -70,11 +70,11 @@ func loadThumbnail(path string) (image.Image, error) {
 	width, height := bounds.Dx(), bounds.Dy()
 
 	if width > height {
-		height = (height * int(thumbnailSize.Width)) / width
-		width = int(thumbnailSize.Width)
+		height = (height * int(thumbnailWidth)) / width
+		width = int(thumbnailWidth)
 	} else {
-		width = (width * int(thumbnailSize.Height)) / height
-		height = int(thumbnailSize.Height)
+		width = (width * int(thumbnailHeight)) / height
+		height = int(thumbnailHeight)
 	}
 
 	scaledSize := image.Rect(0, 0, width, height)
@@ -129,7 +129,7 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 	case ViewModeList:
 		c = container.NewHBox()
 	case ViewModeGrid:
-		c = container.NewGridWrap(thumbnailSize)
+		c = container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailHeight))
 	}
 
 	f, err := os.Open(currentPath)
@@ -167,7 +167,7 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 
 					canvasImage := canvas.NewImageFromImage(thumbnailImage)
 					canvasImage.FillMode = canvas.ImageFillContain
-					canvasImage.SetMinSize(thumbnailSize)
+					canvasImage.SetMinSize(fyne.NewSize(thumbnailWidth, thumbnailHeight))
 
 					thumbnail = newThumbnail(canvasImage, p)
 

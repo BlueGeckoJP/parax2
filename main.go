@@ -26,7 +26,11 @@ type Entry struct {
 	IsDir    bool
 }
 
-var thumbnailSize = fyne.NewSize(200, 200)
+var myApp fyne.App
+var mainPanel *MainPanel
+
+var thumbnailWidth float32 = 200
+var thumbnailHeight float32 = 200
 var maxDepth = 2
 var wgMax = 8
 
@@ -50,9 +54,9 @@ func main() {
 		}()
 	}
 
-	myApp := app.New()
+	myApp = app.New()
 	myWindow = myApp.NewWindow("parax2")
-	mainPanel := newMainPanel()
+	mainPanel = newMainPanel()
 
 	if config != nil {
 		if config.ViewMode == 0 || config.ViewMode == 1 {
@@ -159,17 +163,23 @@ func main() {
 						mainPanel.Update(reader.Path())
 					}
 				}, myWindow)
-			})),
-		fyne.NewMenu("View",
-			fyne.NewMenuItem("List View", func() {
-				mainPanel.viewMode = ViewModeList
-				mainPanel.Update(mainPanel.originalPath)
 			}),
-			fyne.NewMenuItem("Grid View", func() {
-				mainPanel.viewMode = ViewModeGrid
-				mainPanel.Update(mainPanel.originalPath)
+			fyne.NewMenuItem("Open Settings", func() {
+				OpenSettingsWindow()
 			}),
 		),
+		/*
+			fyne.NewMenu("View",
+				fyne.NewMenuItem("List View", func() {
+					mainPanel.viewMode = ViewModeList
+					mainPanel.Update(mainPanel.originalPath)
+				}),
+				fyne.NewMenuItem("Grid View", func() {
+					mainPanel.viewMode = ViewModeGrid
+					mainPanel.Update(mainPanel.originalPath)
+				}),
+			),
+		*/
 	)
 
 	myWindow.SetMainMenu(mainMenu)
