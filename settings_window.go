@@ -15,15 +15,19 @@ func OpenSettingsWindow() {
 	thumbnailSizeWEntry := widget.NewEntry()
 	thumbnailSizeWEntry.SetText(strconv.Itoa(int(thumbnailWidth)))
 	thumbnailSizeWEntry.OnChanged = func(text string) {
-		w, _ := strconv.ParseFloat(text, 32)
-		thumbnailWidth = float32(w)
+		w, err := strconv.ParseFloat(text, 32)
+		if err == nil {
+			thumbnailWidth = float32(w)
+		}
 	}
 
 	thumbnailSizeHEntry := widget.NewEntry()
 	thumbnailSizeHEntry.SetText(strconv.Itoa(int(thumbnailHeight)))
 	thumbnailSizeHEntry.OnChanged = func(text string) {
-		h, _ := strconv.ParseFloat(text, 32)
-		thumbnailHeight = float32(h)
+		h, err := strconv.ParseFloat(text, 32)
+		if err == nil {
+			thumbnailHeight = float32(h)
+		}
 	}
 
 	thumbnailSizeContainer := container.NewHBox(
