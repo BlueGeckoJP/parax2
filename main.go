@@ -168,18 +168,6 @@ func main() {
 				OpenSettingsWindow()
 			}),
 		),
-		/*
-			fyne.NewMenu("View",
-				fyne.NewMenuItem("List View", func() {
-					mainPanel.viewMode = ViewModeList
-					mainPanel.Update(mainPanel.originalPath)
-				}),
-				fyne.NewMenuItem("Grid View", func() {
-					mainPanel.viewMode = ViewModeGrid
-					mainPanel.Update(mainPanel.originalPath)
-				}),
-			),
-		*/
 	)
 
 	myWindow.SetMainMenu(mainMenu)
