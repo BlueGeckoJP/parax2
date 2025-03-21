@@ -112,6 +112,8 @@ func (m *MainPanel) Update(currentPath string) {
 	m.originalPath = currentPath
 	m.update(currentPath, 0, &m.entries)
 
+	m.sortContainers()
+
 	if directoryTreeLabel != nil {
 		directoryTreeLabel.SetText("Tree in " + filepath.Base(m.originalPath))
 	}
@@ -226,5 +228,17 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 		backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
 
 		m.c.Add(container.NewStack(backgroundRect, cVBox))
+	}
+}
+
+func (m *MainPanel) sortContainers() {
+	if m.viewMode == ViewModeList {
+		sort.SliceStable(m.c.Objects, func(i, j int) bool {
+			return m.c.Objects[i].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Label).Text < m.c.Objects[j].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Label).Text
+		})
+	} else if m.viewMode == ViewModeGrid {
+		sort.SliceStable(m.c.Objects, func(i, j int) bool {
+			return m.c.Objects[i].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Accordion).Items[0].Title < m.c.Objects[j].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Accordion).Items[0].Title
+		})
 	}
 }
