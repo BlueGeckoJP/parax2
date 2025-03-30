@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -12,28 +14,30 @@ func OpenSettingsWindow() {
 	settingsWindow := myApp.NewWindow("Settings")
 	settingsWindow.Resize(fyne.NewSize(400, 400))
 
-	thumbnailSizeWEntry := widget.NewEntry()
-	thumbnailSizeWEntry.SetText(strconv.Itoa(int(thumbnailWidth)))
-	thumbnailSizeWEntry.OnChanged = func(text string) {
-		w, err := strconv.ParseFloat(text, 32)
+	thumbnailSizeEntry := widget.NewEntry()
+	thumbnailSizeEntry.SetText(getTSizeString(thumbnailWidth, thumbnailHeight))
+	thumbnailSizeEntry.SetPlaceHolder("Thumbnail Size (e.g. 200x200)")
+	thumbnailSizeEntry.Validator = func(text string) error {
+		_, _, err := getTSizeFromString(text)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	thumbnailSizeEntry.OnChanged = func(text string) {
+		w, h, err := getTSizeFromString(text)
 		if err == nil {
-			thumbnailWidth = float32(w)
+			thumbnailWidth = w
+			thumbnailHeight = h
 		}
 	}
 
-	thumbnailSizeHEntry := widget.NewEntry()
-	thumbnailSizeHEntry.SetText(strconv.Itoa(int(thumbnailHeight)))
-	thumbnailSizeHEntry.OnChanged = func(text string) {
-		h, err := strconv.ParseFloat(text, 32)
-		if err == nil {
-			thumbnailHeight = float32(h)
-		}
-	}
-
-	thumbnailSizeContainer := container.NewHBox(
+	thumbnailSizeContainer := container.NewBorder(
+		nil,
+		nil,
 		widget.NewLabel("Thumbnail Size:"),
-		thumbnailSizeWEntry,
-		thumbnailSizeHEntry,
+		nil,
+		thumbnailSizeEntry,
 	)
 
 	viewModeSelect := widget.NewSelect([]string{"List", "Grid"}, func(selected string) {
@@ -73,4 +77,24 @@ func OpenSettingsWindow() {
 
 	settingsWindow.SetContent(topContainer)
 	settingsWindow.Show()
+}
+
+func getTSizeString(w, h float32) string {
+	return strconv.Itoa(int(w)) + "x" + strconv.Itoa(int(h))
+}
+
+func getTSizeFromString(s string) (float32, float32, error) {
+	parts := strings.Split(s, "x")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("invalid format")
+	}
+	w, err := strconv.ParseFloat(parts[0], 32)
+	if err != nil {
+		return 0, 0, err
+	}
+	h, err := strconv.ParseFloat(parts[1], 32)
+	if err != nil {
+		return 0, 0, err
+	}
+	return float32(w), float32(h), nil
 }
