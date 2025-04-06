@@ -25,6 +25,8 @@ const (
 	ViewModeGrid
 )
 
+var reNum = regexp.MustCompile(`\d+`)
+
 var supportedExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
@@ -244,7 +246,6 @@ func (m *MainPanel) sortContainers() {
 }
 
 func sortContainers(c *fyne.Container) {
-	reNum := regexp.MustCompile(`\d+`)
 	sort.SliceStable(c.Objects, func(i, j int) bool {
 		iPath := c.Objects[i].(*ThumbnailWidget).Path
 		jPath := c.Objects[j].(*ThumbnailWidget).Path
