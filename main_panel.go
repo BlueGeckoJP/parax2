@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -202,9 +204,7 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 	wg.wg.Wait()
 
 	if c.Objects != nil {
-		sort.SliceStable(c.Objects, func(i, j int) bool {
-			return c.Objects[i].(*ThumbnailWidget).Path < c.Objects[j].(*ThumbnailWidget).Path
-		})
+		sortContainers(c)
 
 		relPath, _ := filepath.Rel(m.originalPath, currentPath)
 
@@ -241,4 +241,36 @@ func (m *MainPanel) sortContainers() {
 			return m.c.Objects[i].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Accordion).Items[0].Title < m.c.Objects[j].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Accordion).Items[0].Title
 		})
 	}
+}
+
+func sortContainers(c *fyne.Container) {
+	reNum := regexp.MustCompile(`\d+`)
+	sort.SliceStable(c.Objects, func(i, j int) bool {
+		iPath := c.Objects[i].(*ThumbnailWidget).Path
+		jPath := c.Objects[j].(*ThumbnailWidget).Path
+
+		iWithoutNum := reNum.ReplaceAllString(iPath, "")
+		jWithoutNum := reNum.ReplaceAllString(jPath, "")
+
+		if iWithoutNum == jWithoutNum {
+			iNumStr := reNum.FindAllString(iPath, -1)
+			iNum, err := strconv.Atoi(strings.Join(iNumStr, ""))
+			if err != nil {
+				return iPath < jPath
+			}
+
+			jNumStr := reNum.FindAllString(jPath, -1)
+			jNum, err := strconv.Atoi(strings.Join(jNumStr, ""))
+			if err != nil {
+				return iPath < jPath
+			}
+
+			println(iPath, iNum, iWithoutNum)
+			println(jPath, jNum, jWithoutNum)
+
+			return iNum < jNum
+		}
+
+		return iPath < jPath
+	})
 }
