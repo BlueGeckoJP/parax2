@@ -206,7 +206,7 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 	wg.wg.Wait()
 
 	if c.Objects != nil {
-		sortContainers(c)
+		sortObjects(c)
 
 		relPath, _ := filepath.Rel(m.originalPath, currentPath)
 
@@ -245,7 +245,7 @@ func (m *MainPanel) sortContainers() {
 	}
 }
 
-func sortContainers(c *fyne.Container) {
+func sortObjects(c *fyne.Container) {
 	sort.SliceStable(c.Objects, func(i, j int) bool {
 		iPath := c.Objects[i].(*ThumbnailWidget).Path
 		jPath := c.Objects[j].(*ThumbnailWidget).Path
