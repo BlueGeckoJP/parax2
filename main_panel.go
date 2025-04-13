@@ -25,8 +25,6 @@ const (
 	ViewModeGrid
 )
 
-var reNum = regexp.MustCompile(`\d+`)
-
 var supportedExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
@@ -246,32 +244,47 @@ func (m *MainPanel) sortContainers() {
 }
 
 func sortObjects(c *fyne.Container) {
-	sort.SliceStable(c.Objects, func(i, j int) bool {
+	sort.Slice(c.Objects, func(i, j int) bool {
+		reAll := regexp.MustCompile(`(\d+)|(\D+)`)
+		reNumPerfect := regexp.MustCompile(`^\d+$`)
+
 		iPath := c.Objects[i].(*ThumbnailWidget).Path
 		jPath := c.Objects[j].(*ThumbnailWidget).Path
+		partsI := reAll.FindAllString(iPath, -1)
+		partsJ := reAll.FindAllString(jPath, -1)
 
-		iWithoutNum := reNum.ReplaceAllString(iPath, "")
-		jWithoutNum := reNum.ReplaceAllString(jPath, "")
+		for n := range max(len(partsI), len(partsJ)) {
+			partI := partsI[n]
+			partJ := partsJ[n]
 
-		if iWithoutNum == jWithoutNum {
-			iNumStr := reNum.FindAllString(iPath, -1)
-			iNum, err := strconv.Atoi(strings.Join(iNumStr, ""))
-			if err != nil {
-				return iPath < jPath
+			switch {
+			case n >= len(partsI):
+				return false
+			case n >= len(partsJ):
+				return true
 			}
 
-			jNumStr := reNum.FindAllString(jPath, -1)
-			jNum, err := strconv.Atoi(strings.Join(jNumStr, ""))
-			if err != nil {
-				return iPath < jPath
+			if partI == partJ {
+				continue
 			}
 
-			println(iPath, iNum, iWithoutNum)
-			println(jPath, jNum, jWithoutNum)
-
-			return iNum < jNum
+			if reNumPerfect.MatchString(partI) {
+				if reNumPerfect.MatchString(partJ) {
+					numI, _ := strconv.Atoi(partI)
+					numJ, _ := strconv.Atoi(partJ)
+					return numI < numJ
+				} else {
+					return true
+				}
+			} else {
+				if reNumPerfect.MatchString(partJ) {
+					return false
+				} else {
+					return partI < partJ
+				}
+			}
 		}
 
-		return iPath < jPath
+		return false
 	})
 }
