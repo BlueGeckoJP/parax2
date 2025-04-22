@@ -118,9 +118,9 @@ func main() {
 			)
 		},
 		func(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
-			container := o.(*fyne.Container)
-			icon := container.Objects[0].(*widget.Icon)
-			label := container.Objects[1].(*widget.Label)
+			c := o.(*fyne.Container)
+			icon := c.Objects[0].(*widget.Icon)
+			label := c.Objects[1].(*widget.Label)
 
 			if branch {
 				icon.SetResource(theme.FolderIcon())
