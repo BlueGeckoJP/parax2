@@ -25,13 +25,6 @@ const (
 	ViewModeGrid
 )
 
-var supportedExtensions = map[string]bool{
-	".jpg":  true,
-	".jpeg": true,
-	".png":  true,
-	".webp": true,
-}
-
 func newMainPanel() *MainPanel {
 	return &MainPanel{
 		c:            container.NewVBox(),
@@ -42,8 +35,7 @@ func newMainPanel() *MainPanel {
 }
 
 func isImageFile(filename string) bool {
-	ext := strings.ToLower(filepath.Ext(filename))
-	return supportedExtensions[ext]
+	return true
 }
 
 func loadThumbnail(path string) (image.Image, error) {
@@ -94,6 +86,12 @@ type MainPanel struct {
 }
 
 func (m *MainPanel) Update(currentPath string) {
+	e := search(currentPath, maxDepth)
+	println("Entries: ", len(e))
+	for _, entry := range e {
+		println(strings.Join(entry.Files, ","))
+	}
+
 	if m.originalPath == "." && m.originalPath == currentPath {
 		return
 	}
@@ -165,7 +163,7 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 				if !exists {
 					thumbnailImage, err := loadThumbnail(p)
 					if err != nil {
-						log.Println("Error loading thumbnail:", err)
+						//log.Println("Error loading thumbnail:", err)
 						return
 					}
 
