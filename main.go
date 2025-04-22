@@ -3,17 +3,12 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 	"os/exec"
-	"path/filepath"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -30,8 +25,8 @@ var wgMax = 8
 var thumbnailCache = NewLRUCache(5000)
 var config = loadConfig()
 
-var directoryTree *widget.Tree
-var directoryTreeLabel *widget.Label
+// var directoryTree *widget.Tree
+// var directoryTreeLabel *widget.Label
 var myWindow fyne.Window
 
 func main() {
@@ -67,82 +62,84 @@ func main() {
 		log.Println("Received raw config: ", config)
 	}
 
-	directoryTree = widget.NewTree(
-		func(id widget.TreeNodeID) []widget.TreeNodeID {
-			if id == "" {
-				children := make([]widget.TreeNodeID, 0)
-				for _, entry := range mainPanel.entries {
-					children = append(children, entry.Path)
-				}
-				return children
-			}
-
-			for _, entry := range mainPanel.entries {
-				if entry.Path == id && entry.IsDir {
+	/*
+		directoryTree = widget.NewTree(
+			func(id widget.TreeNodeID) []widget.TreeNodeID {
+				if id == "" {
 					children := make([]widget.TreeNodeID, 0)
-					for _, child := range entry.Children {
-						children = append(children, child.Path)
+					for _, entry := range mainPanel.entries {
+						children = append(children, entry.Path)
 					}
 					return children
 				}
-			}
-			return nil
-		},
-		func(id widget.TreeNodeID) bool {
-			if id == "" {
-				return true
-			}
-			info, err := os.Stat(id)
-			if err != nil {
-				return false
-			}
-			return info.IsDir()
-		},
-		func(branch bool) fyne.CanvasObject {
-			if branch {
+
+				for _, entry := range mainPanel.entries {
+					if entry.Path == id && entry.IsDir {
+						children := make([]widget.TreeNodeID, 0)
+						for _, child := range entry.Children {
+							children = append(children, child.Path)
+						}
+						return children
+					}
+				}
+				return nil
+			},
+			func(id widget.TreeNodeID) bool {
+				if id == "" {
+					return true
+				}
+				info, err := os.Stat(id)
+				if err != nil {
+					return false
+				}
+				return info.IsDir()
+			},
+			func(branch bool) fyne.CanvasObject {
+				if branch {
+					return container.NewHBox(
+						widget.NewIcon(theme.FolderIcon()),
+						widget.NewLabel(""),
+					)
+				}
 				return container.NewHBox(
-					widget.NewIcon(theme.FolderIcon()),
+					widget.NewIcon(theme.FileImageIcon()),
 					widget.NewLabel(""),
 				)
-			}
-			return container.NewHBox(
-				widget.NewIcon(theme.FileImageIcon()),
-				widget.NewLabel(""),
-			)
-		},
-		func(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
-			c := o.(*fyne.Container)
-			icon := c.Objects[0].(*widget.Icon)
-			label := c.Objects[1].(*widget.Label)
+			},
+			func(id widget.TreeNodeID, branch bool, o fyne.CanvasObject) {
+				c := o.(*fyne.Container)
+				icon := c.Objects[0].(*widget.Icon)
+				label := c.Objects[1].(*widget.Label)
 
-			if branch {
-				icon.SetResource(theme.FolderIcon())
-				label.SetText(filepath.Base(id))
-			} else {
-				icon.SetResource(theme.MediaPhotoIcon())
-				label.SetText(filepath.Base(id))
-			}
-		},
-	)
-
-	directoryTree.OnSelected = func(id widget.TreeNodeID) {
-		var findId func([]*Entry)
-		findId = func(entries []*Entry) {
-			for _, entry := range entries {
-				if entry.Path == id && !entry.IsDir {
-					openImageWithDefaultApp(entry.Path)
+				if branch {
+					icon.SetResource(theme.FolderIcon())
+					label.SetText(filepath.Base(id))
+				} else {
+					icon.SetResource(theme.MediaPhotoIcon())
+					label.SetText(filepath.Base(id))
 				}
-				if entry.Children != nil {
-					findId(entry.Children)
+			},
+		)
+
+		directoryTree.OnSelected = func(id widget.TreeNodeID) {
+			var findId func([]*Entry)
+			findId = func(entries []*Entry) {
+				for _, entry := range entries {
+					if entry.Path == id && !entry.IsDir {
+						openImageWithDefaultApp(entry.Path)
+					}
+					if entry.Children != nil {
+						findId(entry.Children)
+					}
 				}
 			}
+			go findId(mainPanel.entries)
 		}
-		go findId(mainPanel.entries)
-	}
+	*/
 
-	directoryTreeLabel = widget.NewLabel("Tree in " + filepath.Base(mainPanel.originalPath))
+	//directoryTreeLabel = widget.NewLabel("Tree in " + filepath.Base(mainPanel.originalPath))
 
-	leftPanel := container.New(layout.NewBorderLayout(directoryTreeLabel, nil, nil, nil), directoryTreeLabel, directoryTree)
+	//leftPanel := container.New(layout.NewBorderLayout(directoryTreeLabel, nil, nil, nil), directoryTreeLabel, directoryTree)
 
 	mainMenu := fyne.NewMainMenu(
 		fyne.NewMenu("File",
@@ -165,10 +162,10 @@ func main() {
 
 	myWindow.SetMainMenu(mainMenu)
 
-	split := container.NewHSplit(leftPanel, container.NewVScroll(mainPanel.c))
-	split.SetOffset(0.2)
+	//split := container.NewHSplit(leftPanel, container.NewVScroll(mainPanel.c))
+	//split.SetOffset(0.2)
 
-	myWindow.SetContent(split)
+	myWindow.SetContent(container.NewVScroll(mainPanel.c))
 	myWindow.Resize(fyne.NewSize(800, 600))
 	myWindow.ShowAndRun()
 }

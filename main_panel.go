@@ -3,12 +3,10 @@ package main
 import (
 	"image/color"
 	"log"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
-	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -51,7 +49,7 @@ func (m *MainPanel) Update(currentPath string) {
 	}
 
 	m.entries = search(currentPath, maxDepth)
-	log.Println("Loaded %d entries", len(m.entries))
+	log.Println("Loaded", len(m.entries), "entries")
 
 	m.c.Objects = nil
 
@@ -59,14 +57,13 @@ func (m *MainPanel) Update(currentPath string) {
 
 	m.originalPath = currentPath
 
-	blankRect := canvas.NewRectangle(color.Color(color.RGBA{224, 224, 224, 1}))
 	backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
 
 	for _, e := range m.entries {
 		var c *fyne.Container
 		switch m.viewMode {
 		case ViewModeList:
-			c = container.NewVBox(widget.NewLabel(e.Path), container.NewHScroll(blankRect))
+			c = container.NewVBox(widget.NewLabel(e.Path), container.NewHScroll(nil))
 		case ViewModeGrid:
 			c = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(e.Path, container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailWidth)))))
 		}
@@ -76,17 +73,18 @@ func (m *MainPanel) Update(currentPath string) {
 
 	m.sortContainers()
 
-	if directoryTreeLabel != nil {
+	/*if directoryTreeLabel != nil {
 		directoryTreeLabel.SetText("Tree in " + filepath.Base(m.originalPath))
 	}
 	if directoryTree != nil {
 		directoryTree.Refresh()
-	}
+	}*/
 
 	myWindow.SetTitle("parax2")
 	log.Println("MainPanel.Update done")
 }
 
+/*
 func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 	var c *fyne.Container
 	switch m.viewMode {
@@ -189,7 +187,7 @@ func (m *MainPanel) update(currentPath string, depth int, entries *[]*Entry) {
 
 		m.c.Add(container.NewStack(backgroundRect, cVBox))
 	}
-}
+}*/
 
 func (m *MainPanel) sortContainers() {
 	if m.viewMode == ViewModeList {
