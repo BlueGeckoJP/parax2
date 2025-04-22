@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"image/color"
 	"log"
 	"os"
@@ -9,15 +8,12 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
-	"golang.org/x/image/draw"
-	"golang.org/x/image/webp"
 )
 
 const (
@@ -29,69 +25,19 @@ func newMainPanel() *MainPanel {
 	return &MainPanel{
 		c:            container.NewVBox(),
 		viewMode:     ViewModeGrid,
-		entries:      []*Entry{},
+		entries:      []Entries{},
 		originalPath: ".",
 	}
-}
-
-func isImageFile(filename string) bool {
-	return true
-}
-
-func loadThumbnail(path string) (image.Image, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	var img image.Image
-
-	if filepath.Ext(path) == ".webp" {
-		img, err = webp.Decode(f)
-		if err != nil {
-			return nil, err
-		}
-		return img, nil
-	} else {
-		img, _, err = image.Decode(f)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	bounds := img.Bounds()
-	width, height := bounds.Dx(), bounds.Dy()
-
-	if width > height {
-		height = (height * int(thumbnailWidth)) / width
-		width = int(thumbnailWidth)
-	} else {
-		width = (width * int(thumbnailHeight)) / height
-		height = int(thumbnailHeight)
-	}
-
-	scaledSize := image.Rect(0, 0, width, height)
-	scaled := image.NewRGBA(scaledSize)
-	draw.BiLinear.Scale(scaled, scaledSize, img, img.Bounds(), draw.Over, nil)
-
-	return scaled, nil
 }
 
 type MainPanel struct {
 	c            *fyne.Container
 	viewMode     int
-	entries      []*Entry
+	entries      []Entries
 	originalPath string
 }
 
 func (m *MainPanel) Update(currentPath string) {
-	e := search(currentPath, maxDepth)
-	println("Entries: ", len(e))
-	for _, entry := range e {
-		println(strings.Join(entry.Files, ","))
-	}
-
 	if m.originalPath == "." && m.originalPath == currentPath {
 		return
 	}
@@ -104,13 +50,29 @@ func (m *MainPanel) Update(currentPath string) {
 		return
 	}
 
+	m.entries = search(currentPath, maxDepth)
+	log.Println("Loaded %d entries", len(m.entries))
+
 	m.c.Objects = nil
-	m.entries = nil
 
 	myWindow.SetTitle("Loading - parax2")
 
 	m.originalPath = currentPath
-	m.update(currentPath, 0, &m.entries)
+
+	blankRect := canvas.NewRectangle(color.Color(color.RGBA{224, 224, 224, 1}))
+	backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
+
+	for _, e := range m.entries {
+		var c *fyne.Container
+		switch m.viewMode {
+		case ViewModeList:
+			c = container.NewVBox(widget.NewLabel(e.Path), container.NewHScroll(blankRect))
+		case ViewModeGrid:
+			c = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(e.Path, container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailWidth)))))
+		}
+
+		m.c.Add(container.NewStack(backgroundRect, c))
+	}
 
 	m.sortContainers()
 
