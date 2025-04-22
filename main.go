@@ -19,13 +19,6 @@ import (
 	_ "net/http/pprof"
 )
 
-type Entry struct {
-	Path     string
-	Children []*Entry
-	Depth    int
-	IsDir    bool
-}
-
 var myApp fyne.App
 var mainPanel *MainPanel
 

@@ -1,16 +1,28 @@
 package main
 
 import (
+	"image"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"weak"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"golang.org/x/image/draw"
+	"golang.org/x/image/webp"
 )
 
 type Entries struct {
+	Path   string
+	Images []ImageEntry
+}
+
+type ImageEntry struct {
 	Path  string
-	Files []string
+	Image weak.Pointer[canvas.Image]
 }
 
 var supportedExtensions = regexp.MustCompile(`.jpg|.jpeg|.png|.webp`)
@@ -36,15 +48,15 @@ func search(root string, maxDepth int) []Entries {
 		entries, ok := result[dir]
 		if !ok {
 			e := &Entries{
-				Path:  dir,
-				Files: []string{},
+				Path:   dir,
+				Images: []ImageEntry{},
 			}
 			result[dir] = e
 			entries = e
 		}
 
 		if isSupportedExtension(path) {
-			entries.Files = append(entries.Files, path)
+			entries.Images = append(entries.Images, ImageEntry{Path: path})
 		}
 
 		return nil
@@ -53,12 +65,69 @@ func search(root string, maxDepth int) []Entries {
 	entries := make([]Entries, 0, len(result))
 
 	for _, entry := range result {
-		if len(entry.Files) > 0 {
+		if len(entry.Images) > 0 {
 			entries = append(entries, *entry)
 		}
 	}
 
 	return entries
+}
+
+func (e *Entries) LoadAll() {
+	for i := range e.Images {
+		if e.Images[i].Image.Value() == nil {
+			f, err := os.Open(e.Images[i].Path)
+			if err != nil {
+				continue
+			}
+			defer f.Close()
+
+			img, err := getScaled(f)
+			if err != nil {
+				continue
+			}
+
+			canvasImage := canvas.NewImageFromImage(img)
+			canvasImage.FillMode = canvas.ImageFillContain
+			canvasImage.SetMinSize(fyne.NewSize(thumbnailWidth, thumbnailHeight))
+
+			e.Images[i].Image = weak.Make(canvasImage)
+		}
+	}
+}
+
+func getScaled(f *os.File) (image.Image, error) {
+	var img image.Image
+	var err error
+
+	if filepath.Ext(f.Name()) == ".webp" {
+		img, err = webp.Decode(f)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		img, _, err = image.Decode(f)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+
+	if width > height {
+		height = (height * int(thumbnailWidth)) / width
+		width = int(thumbnailWidth)
+	} else {
+		width = (width * int(thumbnailHeight)) / height
+		height = int(thumbnailHeight)
+	}
+
+	scaledSize := image.Rect(0, 0, width, height)
+	scaled := image.NewRGBA(scaledSize)
+	draw.BiLinear.Scale(scaled, scaledSize, img, img.Bounds(), draw.Over, nil)
+
+	return scaled, nil
 }
 
 func getDepth(path string) int {
