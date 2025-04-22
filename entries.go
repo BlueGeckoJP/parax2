@@ -17,7 +17,7 @@ import (
 
 type Entries struct {
 	Path   string
-	Images []ImageEntry
+	Images []*ImageEntry
 }
 
 type ImageEntry struct {
@@ -27,7 +27,7 @@ type ImageEntry struct {
 
 var supportedExtensions = regexp.MustCompile(`.jpg|.jpeg|.png|.webp`)
 
-func search(root string, maxDepth int) []Entries {
+func search(root string, maxDepth int) []*Entries {
 	result := make(map[string]*Entries)
 	baseDepth := getDepth(root)
 
@@ -49,24 +49,24 @@ func search(root string, maxDepth int) []Entries {
 		if !ok {
 			e := &Entries{
 				Path:   dir,
-				Images: []ImageEntry{},
+				Images: []*ImageEntry{},
 			}
 			result[dir] = e
 			entries = e
 		}
 
 		if isSupportedExtension(path) {
-			entries.Images = append(entries.Images, ImageEntry{Path: path})
+			entries.Images = append(entries.Images, &ImageEntry{Path: path})
 		}
 
 		return nil
 	})
 
-	entries := make([]Entries, 0, len(result))
+	entries := make([]*Entries, 0, len(result))
 
 	for _, entry := range result {
 		if len(entry.Images) > 0 {
-			entries = append(entries, *entry)
+			entries = append(entries, entry)
 		}
 	}
 
@@ -74,25 +74,44 @@ func search(root string, maxDepth int) []Entries {
 }
 
 func (e *Entries) LoadAll() {
-	for i := range e.Images {
-		if e.Images[i].Image.Value() == nil {
-			f, err := os.Open(e.Images[i].Path)
-			if err != nil {
-				continue
-			}
-			defer f.Close()
-
-			img, err := getScaled(f)
-			if err != nil {
-				continue
-			}
-
-			canvasImage := canvas.NewImageFromImage(img)
-			canvasImage.FillMode = canvas.ImageFillContain
-			canvasImage.SetMinSize(fyne.NewSize(thumbnailWidth, thumbnailHeight))
-
-			e.Images[i].Image = weak.Make(canvasImage)
+	for _, i := range e.Images {
+		err := e.Load(i)
+		if err != nil {
+			println(err)
 		}
+	}
+}
+
+func (e *Entries) Load(i *ImageEntry) error {
+	if i.Image.Value() == nil {
+		f, err := os.Open(i.Path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		img, err := getScaled(f)
+		if err != nil {
+			return err
+		}
+
+		canvasImage := canvas.NewImageFromImage(img)
+		canvasImage.FillMode = canvas.ImageFillContain
+		canvasImage.SetMinSize(fyne.NewSize(thumbnailWidth, thumbnailHeight))
+
+		i.Image = weak.Make(canvasImage)
+	}
+
+	return nil
+}
+
+func (e *Entries) Get(i *ImageEntry) *canvas.Image {
+	img := i.Image.Value()
+	if img != nil {
+		return img
+	} else {
+		e.Load(i)
+		return i.Image.Value()
 	}
 }
 

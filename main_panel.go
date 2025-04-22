@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"image/color"
 	"log"
 	"path/filepath"
@@ -19,20 +20,24 @@ const (
 	ViewModeGrid
 )
 
+type PathID = string
+
 func newMainPanel() *MainPanel {
 	return &MainPanel{
 		c:            container.NewVBox(),
 		viewMode:     ViewModeGrid,
-		entries:      []Entries{},
+		entries:      []*Entries{},
 		originalPath: ".",
+		containerMap: make(map[PathID]*fyne.Container),
 	}
 }
 
 type MainPanel struct {
 	c            *fyne.Container
 	viewMode     int
-	entries      []Entries
+	entries      []*Entries
 	originalPath string
+	containerMap map[string]*fyne.Container
 }
 
 func (m *MainPanel) Update(currentPath string) {
@@ -59,19 +64,28 @@ func (m *MainPanel) Update(currentPath string) {
 
 	backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
 
-	for _, e := range m.entries {
-		var c *fyne.Container
+	for _, entry := range m.entries {
+		var outer *fyne.Container
 		switch m.viewMode {
 		case ViewModeList:
-			c = container.NewVBox(widget.NewLabel(e.Path), container.NewHScroll(nil))
+			c := container.NewHBox()
+			m.containerMap[entry.Path] = c
+			outer = container.NewVBox(widget.NewLabel(entry.Path), container.NewHScroll(c))
 		case ViewModeGrid:
-			c = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(e.Path, container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailWidth)))))
+			c := container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailWidth))
+			m.containerMap[entry.Path] = c
+			outer = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(entry.Path, c)))
 		}
 
-		m.c.Add(container.NewStack(backgroundRect, c))
+		m.c.Add(container.NewStack(backgroundRect, outer))
 	}
 
 	m.sortContainers()
+
+	err = m.loadAllImages()
+	if err != nil {
+		println(err)
+	}
 
 	/*if directoryTreeLabel != nil {
 		directoryTreeLabel.SetText("Tree in " + filepath.Base(m.originalPath))
@@ -82,6 +96,51 @@ func (m *MainPanel) Update(currentPath string) {
 
 	myWindow.SetTitle("parax2")
 	log.Println("MainPanel.Update done")
+}
+
+func (m *MainPanel) loadImages(pathId PathID) error {
+	c := m.containerMap[pathId]
+	if c == nil {
+		return errors.New("The container specified by pathId could not be found.")
+	}
+
+	if len(m.entries) == 0 {
+		return errors.New("Entries list is empty.")
+	}
+
+	var entries *Entries
+	for _, e := range m.entries {
+		if e.Path == pathId {
+			entries = e
+			break
+		}
+	}
+	if entries == nil {
+		return errors.New("Entries not found.")
+	}
+	entries.LoadAll()
+
+	for _, i := range entries.Images {
+		img := entries.Get(i)
+		if img != nil {
+			c.Add(img)
+		} else {
+			println("not found", i.Path)
+		}
+	}
+
+	return nil
+}
+
+func (m *MainPanel) loadAllImages() error {
+	for key := range m.containerMap {
+		err := m.loadImages(key)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 /*
