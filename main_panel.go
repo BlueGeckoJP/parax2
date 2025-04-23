@@ -87,12 +87,12 @@ func (m *MainPanel) Update(currentPath string) {
 		println(err)
 	}
 
-	/*if directoryTreeLabel != nil {
+	if directoryTreeLabel != nil {
 		directoryTreeLabel.SetText("Tree in " + filepath.Base(m.originalPath))
 	}
 	if directoryTree != nil {
 		directoryTree.Refresh()
-	}*/
+	}
 
 	myWindow.SetTitle("parax2")
 	log.Println("MainPanel.Update done")

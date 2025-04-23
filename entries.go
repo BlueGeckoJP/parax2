@@ -55,7 +55,7 @@ func search(root string, maxDepth int) []*Entries {
 			entries = e
 		}
 
-		if isSupportedExtension(path) {
+		if IsSupportedExtension(path) {
 			entries.Images = append(entries.Images, &ImageEntry{Path: path})
 		}
 
@@ -153,7 +153,7 @@ func getDepth(path string) int {
 	return strings.Count(path, string(os.PathSeparator))
 }
 
-func isSupportedExtension(path string) bool {
+func IsSupportedExtension(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return supportedExtensions.MatchString(ext)
 }
