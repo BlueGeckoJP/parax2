@@ -70,11 +70,15 @@ func (m *MainPanel) Update(currentPath string) {
 		case ViewModeList:
 			c := container.NewHBox()
 			m.containerMap[entry.Path] = c
-			outer = container.NewVBox(widget.NewLabel(entry.Path), container.NewHScroll(c))
+			rel := getRelPath(m.originalPath, entry.Path)
+			outer = container.NewVBox(
+				widget.NewLabel(rel), container.NewHScroll(c),
+			)
 		case ViewModeGrid:
 			c := container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailWidth))
 			m.containerMap[entry.Path] = c
-			outer = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(entry.Path, c)))
+			rel := getRelPath(m.originalPath, entry.Path)
+			outer = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(rel, c)))
 		}
 
 		m.c.Add(container.NewStack(backgroundRect, outer))
@@ -304,4 +308,13 @@ func sortObjects(c *fyne.Container) {
 
 		return false
 	})
+}
+
+func getRelPath(baseDirPath string, path string) string {
+	println(baseDirPath, path)
+	rel, err := filepath.Rel(baseDirPath, path)
+	if err != nil {
+		return path
+	}
+	return rel
 }
