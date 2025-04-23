@@ -127,11 +127,14 @@ func (m *MainPanel) loadImages(pathId PathID) error {
 	for _, i := range entries.Images {
 		img := entries.Get(i)
 		if img != nil {
-			c.Add(img)
+			thumbnail := newThumbnail(img, i.Path)
+			c.Add(thumbnail)
 		} else {
 			println("not found", i.Path)
 		}
 	}
+
+	sortObjects(c)
 
 	return nil
 }
