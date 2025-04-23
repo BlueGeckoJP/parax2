@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -77,7 +78,7 @@ func (e *Entries) LoadAll() {
 	for _, i := range e.Images {
 		err := e.Load(i)
 		if err != nil {
-			println(err)
+			log.Println("An error occurred while LoadAll function:", err)
 		}
 	}
 }

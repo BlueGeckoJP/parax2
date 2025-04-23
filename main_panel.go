@@ -88,7 +88,7 @@ func (m *MainPanel) Update(currentPath string) {
 
 	err = m.loadAllImages()
 	if err != nil {
-		println(err)
+		log.Println("An error occurred while loading all images:", err)
 	}
 
 	if directoryTreeLabel != nil {
@@ -134,7 +134,7 @@ func (m *MainPanel) loadImages(pathId PathID) error {
 				thumbnail := newThumbnail(img, i.Path)
 				c.Add(thumbnail)
 			} else {
-				println("not found", i.Path)
+				log.Println("The image in the entry is null.")
 			}
 		})
 	}
@@ -216,7 +216,6 @@ func sortObjects(c *fyne.Container) {
 }
 
 func getRelPath(baseDirPath string, path string) string {
-	println(baseDirPath, path)
 	rel, err := filepath.Rel(baseDirPath, path)
 	if err != nil {
 		return path
