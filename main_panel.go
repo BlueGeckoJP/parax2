@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -124,15 +125,26 @@ func (m *MainPanel) loadImages(pathId PathID) error {
 	}
 	entries.LoadAll()
 
-	for _, i := range entries.Images {
-		img := entries.Get(i)
-		if img != nil {
-			thumbnail := newThumbnail(img, i.Path)
-			c.Add(thumbnail)
-		} else {
-			println("not found", i.Path)
-		}
+	wg := &WGWithCounter{
+		wg:    sync.WaitGroup{},
+		count: 0,
+		max:   wgMax,
 	}
+
+	for _, i := range entries.Images {
+		wg.Add(1, func() {
+			defer wg.Done()
+			img := entries.Get(i)
+			if img != nil {
+				thumbnail := newThumbnail(img, i.Path)
+				c.Add(thumbnail)
+			} else {
+				println("not found", i.Path)
+			}
+		})
+	}
+
+	wg.wg.Wait()
 
 	sortObjects(c)
 
