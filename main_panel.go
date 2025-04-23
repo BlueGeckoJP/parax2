@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -125,14 +124,10 @@ func (m *MainPanel) loadImages(pathId PathID) error {
 	}
 	entries.LoadAll()
 
-	wg := &WGWithCounter{
-		wg:    sync.WaitGroup{},
-		count: 0,
-		max:   wgMax,
-	}
+	wg := newWGWC()
 
 	for _, i := range entries.Images {
-		wg.Add(1, func() {
+		wg.Add(func() {
 			defer wg.Done()
 			img := entries.Get(i)
 			if img != nil {

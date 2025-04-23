@@ -11,9 +11,17 @@ type WGWithCounter struct {
 	max   int
 }
 
-func (wg *WGWithCounter) Add(delta int, function func()) {
-	wg.wg.Add(delta)
-	wg.count += delta
+func newWGWC() *WGWithCounter {
+	return &WGWithCounter{
+		wg:    sync.WaitGroup{},
+		count: 0,
+		max:   wgMax,
+	}
+}
+
+func (wg *WGWithCounter) Add(function func()) {
+	wg.wg.Add(1)
+	wg.count += 1
 
 	if wg.count <= wg.max {
 		go function()
