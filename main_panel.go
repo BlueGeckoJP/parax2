@@ -75,7 +75,7 @@ func (m *MainPanel) Update(currentPath string) {
 				widget.NewLabel(rel), container.NewHScroll(c),
 			)
 		case ViewModeGrid:
-			c := container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailWidth))
+			c := container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailHeight))
 			m.containerMap[entry.Path] = c
 			rel := getRelPath(m.originalPath, entry.Path)
 			outer = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(rel, c)))
