@@ -179,7 +179,7 @@ func sortObjects(c *fyne.Container) {
 		partsI := reAll.FindAllString(iPath, -1)
 		partsJ := reAll.FindAllString(jPath, -1)
 
-		for n := range max(len(partsI), len(partsJ)) {
+		for n := range min(len(partsI), len(partsJ)) {
 			partI := partsI[n]
 			partJ := partsJ[n]
 
