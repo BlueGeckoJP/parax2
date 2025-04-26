@@ -11,7 +11,7 @@ type WGWithCounter struct {
 	max   int
 }
 
-func newWGWC() *WGWithCounter {
+func newWGC() *WGWithCounter {
 	return &WGWithCounter{
 		wg:    sync.WaitGroup{},
 		count: 0,

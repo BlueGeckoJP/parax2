@@ -27,7 +27,6 @@ var thumbnailHeight float32 = 200
 var maxDepth = 2
 var wgMax = 8
 
-var thumbnailCache = NewLRUCache(5000)
 var config = loadConfig()
 
 var directoryTree *widget.Tree
@@ -57,9 +56,6 @@ func main() {
 		}
 		if config.MaxDepth > 0 {
 			maxDepth = config.MaxDepth
-		}
-		if config.CacheLimit > 0 {
-			thumbnailCache = NewLRUCache(config.CacheLimit)
 		}
 		if config.WGMax > 1 {
 			wgMax = config.WGMax

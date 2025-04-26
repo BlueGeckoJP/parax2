@@ -53,7 +53,10 @@ func (m *MainPanel) Update(currentPath string) {
 		return
 	}
 
-	m.entries = search(currentPath, maxDepth)
+	m.entries, err = search(currentPath, maxDepth)
+	if err != nil {
+		log.Println("An error occurred while searching entries:", err)
+	}
 	log.Println("Loaded", len(m.entries), "entries")
 
 	m.c.Objects = nil
@@ -62,7 +65,7 @@ func (m *MainPanel) Update(currentPath string) {
 
 	m.originalPath = currentPath
 
-	backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{51, 51, 51, 255}))
+	backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{R: 51, G: 51, B: 51, A: 255}))
 
 	for _, entry := range m.entries {
 		var outer *fyne.Container
@@ -105,11 +108,11 @@ func (m *MainPanel) Update(currentPath string) {
 func (m *MainPanel) loadImages(pathId PathID) error {
 	c := m.containerMap[pathId]
 	if c == nil {
-		return errors.New("The container specified by pathId could not be found.")
+		return errors.New("the container specified by pathId could not be found")
 	}
 
 	if len(m.entries) == 0 {
-		return errors.New("Entries list is empty.")
+		return errors.New("entries list is empty")
 	}
 
 	var entries *Entries
@@ -120,16 +123,20 @@ func (m *MainPanel) loadImages(pathId PathID) error {
 		}
 	}
 	if entries == nil {
-		return errors.New("Entries not found.")
+		return errors.New("entries not found")
 	}
 	entries.LoadAll()
 
-	wg := newWGWC()
+	wg := newWGC()
 
 	for _, i := range entries.Images {
 		wg.Add(func() {
 			defer wg.Done()
-			img := entries.Get(i)
+			img, err := entries.Get(i)
+			if err != nil {
+				log.Println("An error occurred while get image from entries:", err)
+				return
+			}
 			if img != nil {
 				thumbnail := newThumbnail(img, i.Path)
 				c.Add(thumbnail)

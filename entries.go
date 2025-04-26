@@ -28,11 +28,11 @@ type ImageEntry struct {
 
 var supportedExtensions = regexp.MustCompile(`.jpg|.jpeg|.png|.webp`)
 
-func search(root string, maxDepth int) []*Entries {
+func search(root string, maxDepth int) ([]*Entries, error) {
 	result := make(map[string]*Entries)
 	baseDepth := getDepth(root)
 
-	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -63,6 +63,10 @@ func search(root string, maxDepth int) []*Entries {
 		return nil
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	entries := make([]*Entries, 0, len(result))
 
 	for _, entry := range result {
@@ -71,7 +75,7 @@ func search(root string, maxDepth int) []*Entries {
 		}
 	}
 
-	return entries
+	return entries, nil
 }
 
 func (e *Entries) LoadAll() {
@@ -89,7 +93,12 @@ func (e *Entries) Load(i *ImageEntry) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func(f *os.File) {
+			err := f.Close()
+			if err != nil {
+				log.Println("An error occurred while closing file:", err)
+			}
+		}(f)
 
 		img, err := getScaled(f)
 		if err != nil {
@@ -106,13 +115,16 @@ func (e *Entries) Load(i *ImageEntry) error {
 	return nil
 }
 
-func (e *Entries) Get(i *ImageEntry) *canvas.Image {
+func (e *Entries) Get(i *ImageEntry) (*canvas.Image, error) {
 	img := i.Image.Value()
 	if img != nil {
-		return img
+		return img, nil
 	} else {
-		e.Load(i)
-		return i.Image.Value()
+		err := e.Load(i)
+		if err != nil {
+			return nil, err
+		}
+		return i.Image.Value(), nil
 	}
 }
 
