@@ -12,7 +12,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
 )
 
 const (
@@ -22,13 +21,15 @@ const (
 
 type PathID = string
 
+var backgroundRect = canvas.NewRectangle(color.Color(color.RGBA{R: 51, G: 51, B: 51, A: 255}))
+
 func newMainPanel() *MainPanel {
 	return &MainPanel{
 		c:            container.NewVBox(),
 		viewMode:     ViewModeGrid,
 		entries:      []*Entries{},
 		originalPath: ".",
-		containerMap: make(map[PathID]*fyne.Container),
+		containerMap: make(map[PathID]*CustomContainer),
 	}
 }
 
@@ -37,7 +38,7 @@ type MainPanel struct {
 	viewMode     int
 	entries      []*Entries
 	originalPath string
-	containerMap map[string]*fyne.Container
+	containerMap map[string]*CustomContainer
 }
 
 func (m *MainPanel) Update(currentPath string) {
@@ -65,26 +66,15 @@ func (m *MainPanel) Update(currentPath string) {
 
 	m.originalPath = currentPath
 
-	backgroundRect := canvas.NewRectangle(color.Color(color.RGBA{R: 51, G: 51, B: 51, A: 255}))
-
 	for _, entry := range m.entries {
-		var outer *fyne.Container
 		switch m.viewMode {
 		case ViewModeList:
-			c := container.NewHBox()
-			m.containerMap[entry.Path] = c
-			rel := getRelPath(m.originalPath, entry.Path)
-			outer = container.NewVBox(
-				widget.NewLabel(rel), container.NewHScroll(c),
-			)
+			l := newListContainer(getRelPath(m.originalPath, entry.Path))
+			m.c.Add(l)
 		case ViewModeGrid:
-			c := container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailHeight))
-			m.containerMap[entry.Path] = c
-			rel := getRelPath(m.originalPath, entry.Path)
-			outer = container.NewVBox(widget.NewAccordion(widget.NewAccordionItem(rel, c)))
+			g := newGridContainer(getRelPath(m.originalPath, entry.Path))
+			m.c.Add(g)
 		}
-
-		m.c.Add(container.NewStack(backgroundRect, outer))
 	}
 
 	m.sortContainers()
@@ -139,7 +129,7 @@ func (m *MainPanel) loadImages(pathId PathID) error {
 			}
 			if img != nil {
 				thumbnail := newThumbnail(img, i.Path)
-				c.Add(thumbnail)
+				(*c).Add(thumbnail)
 			} else {
 				log.Println("The image in the entry is null.")
 			}
@@ -167,22 +157,22 @@ func (m *MainPanel) loadAllImages() error {
 func (m *MainPanel) sortContainers() {
 	if m.viewMode == ViewModeList {
 		sort.SliceStable(m.c.Objects, func(i, j int) bool {
-			return m.c.Objects[i].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Label).Text < m.c.Objects[j].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Label).Text
+			return m.c.Objects[i].(*ListContainer).Title() < m.c.Objects[j].(*ListContainer).Title()
 		})
 	} else if m.viewMode == ViewModeGrid {
 		sort.SliceStable(m.c.Objects, func(i, j int) bool {
-			return m.c.Objects[i].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Accordion).Items[0].Title < m.c.Objects[j].(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Accordion).Items[0].Title
+			return m.c.Objects[i].(*GridContainer).Title() < m.c.Objects[j].(*GridContainer).Title()
 		})
 	}
 }
 
-func sortObjects(c *fyne.Container) {
-	sort.Slice(c.Objects, func(i, j int) bool {
+func sortObjects(c *CustomContainer) {
+	sort.Slice((*c).Objects(), func(i, j int) bool {
 		reAll := regexp.MustCompile(`(\d+)|(\D+)`)
 		reNumPerfect := regexp.MustCompile(`^\d+$`)
 
-		iPath := c.Objects[i].(*ThumbnailWidget).Path
-		jPath := c.Objects[j].(*ThumbnailWidget).Path
+		iPath := (*c).Objects()[i].(*ThumbnailWidget).Path
+		jPath := (*c).Objects()[j].(*ThumbnailWidget).Path
 		partsI := reAll.FindAllString(iPath, -1)
 		partsJ := reAll.FindAllString(jPath, -1)
 
