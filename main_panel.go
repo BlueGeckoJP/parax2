@@ -66,14 +66,20 @@ func (m *MainPanel) Update(currentPath string) {
 
 	m.originalPath = currentPath
 
+	m.containerMap = make(map[string]*CustomContainer)
+
 	for _, entry := range m.entries {
 		switch m.viewMode {
 		case ViewModeList:
 			l := newListContainer(getRelPath(m.originalPath, entry.Path))
 			m.c.Add(l)
+			var lcc CustomContainer = l
+			m.containerMap[entry.Path] = &lcc
 		case ViewModeGrid:
 			g := newGridContainer(getRelPath(m.originalPath, entry.Path))
 			m.c.Add(g)
+			var gcc CustomContainer = g
+			m.containerMap[entry.Path] = &gcc
 		}
 	}
 
