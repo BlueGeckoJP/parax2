@@ -2,8 +2,10 @@ package main
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"image/color"
 )
 
 type GridContainer struct {
@@ -16,7 +18,7 @@ type GridContainer struct {
 func newGridContainer(title string) *GridContainer {
 	inner := container.NewGridWrap(fyne.NewSize(thumbnailWidth, thumbnailHeight))
 	outer := container.NewStack(
-		backgroundRect,
+		canvas.NewRectangle(color.RGBA{R: 51, G: 51, B: 51, A: 255}),
 		container.NewVBox(
 			widget.NewAccordion(
 				widget.NewAccordionItem(

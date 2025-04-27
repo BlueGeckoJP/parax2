@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"image/color"
 	"log"
 	"path/filepath"
 	"regexp"
@@ -10,7 +9,6 @@ import (
 	"strconv"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 )
 
@@ -20,8 +18,6 @@ const (
 )
 
 type PathID = string
-
-var backgroundRect = canvas.NewRectangle(color.Color(color.RGBA{R: 51, G: 51, B: 51, A: 255}))
 
 func newMainPanel() *MainPanel {
 	return &MainPanel{

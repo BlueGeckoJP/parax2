@@ -2,8 +2,10 @@ package main
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"image/color"
 )
 
 type ListContainer struct {
@@ -16,7 +18,7 @@ type ListContainer struct {
 func newListContainer(title string) *ListContainer {
 	inner := container.NewHBox()
 	outer := container.NewStack(
-		backgroundRect,
+		canvas.NewRectangle(color.RGBA{R: 51, G: 51, B: 51, A: 255}),
 		container.NewVBox(
 			widget.NewLabel(title),
 			container.NewHScroll(inner),
